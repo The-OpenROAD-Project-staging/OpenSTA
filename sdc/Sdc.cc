@@ -24,6 +24,9 @@
 
 #include "Sdc.hh"
 
+// OpenROAD fork: analysis_corner support.
+#include "AnalysisCorner.hh"
+
 #include <algorithm>
 #include <cstddef>
 #include <set>
@@ -1141,6 +1144,9 @@ Sdc::makeClkPinMappings(Clock *clk)
 void
 Sdc::removeClock(Clock *clk)
 {
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  purgeCornerClkRefs(mode_, clk);
+  // ---- OpenROAD fork: analysis_corner support (end) ----
   deleteExceptionsReferencing(clk);
   deleteInputDelaysReferencing(clk);
   deleteOutputDelaysReferencing(clk);

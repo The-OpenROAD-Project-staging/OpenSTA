@@ -52,3 +52,19 @@ unset_cmd_analysis_corner
 delete_instance buf2
 puts "=== after delete_instance buf2 ==="
 report_checks -format end
+
+# A clock also dies when a new clock claims its last pin, which does not
+# go through delete_clock: the corner's references must be purged there
+# too, and the new clock must not inherit the dead clock's corner data.
+create_clock -name clk2 -period 10 [get_ports clk]
+set_cmd_analysis_corner ssc
+set_clock_uncertainty 0.9 [get_clocks clk2]
+set_input_delay 3.0 -clock clk2 [get_ports in1]
+unset_cmd_analysis_corner
+# clk3 claims clk2's only pin, so clk2 dies without delete_clock. The
+# corner's uncertainty and overlay delay for clk2 must not carry over to
+# clk3: only the mode's 1.0 input delay applies below.
+create_clock -name clk3 -period 10 [get_ports clk]
+set_input_delay 1.0 -clock clk3 [get_ports in1]
+puts "=== after clk3 replaced clk2 on the same pin ==="
+report_checks -format end

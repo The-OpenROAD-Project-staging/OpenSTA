@@ -73,6 +73,13 @@ public:
   size_t pathIndex(const MinMax *min_max) const;
 
   DcalcAPIndex dcalcAnalysisPtIndex(const MinMax *min_max) const;
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  // Inverse of the index encoding above: the scene index an analysis
+  // point index belongs to. Kept beside the encoding so a change to one
+  // meets the other.
+  static size_t indexFromDcalcAP(DcalcAPIndex dcalc_ap)
+  { return dcalc_ap / MinMax::index_count; }
+  // ---- OpenROAD fork: analysis_corner support (end) ----
   const MinMax *checkClkSlewMinMax(const MinMax *min_max) const;
   // Slew index of timing check clock.
   DcalcAPIndex checkClkSlewIndex(const MinMax *min_max) const;

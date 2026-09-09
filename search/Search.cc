@@ -3173,11 +3173,11 @@ Search::deratedDelay(const Vertex *from_vertex,
                      const Sdc *sdc)
 {
   // ---- OpenROAD fork: analysis_corner support (begin) ----
-  // dcalc_ap encodes the scene (scene index * MinMax::index_count + min/max
-  // index), so the scene's analysis corner overlay Sdc (when it defines
-  // derates) is resolved here without touching any caller.
+  // dcalc_ap encodes the scene, so the scene's analysis corner overlay
+  // Sdc (when it defines derates) is resolved here without touching any
+  // caller.
   const Sdc *overlay_sdc =
-    scenes_[dcalc_ap / MinMax::index_count]->sdcOverlayForDerate();
+    scenes_[Scene::indexFromDcalcAP(dcalc_ap)]->sdcOverlayForDerate();
   if (overlay_sdc)
     sdc = overlay_sdc;
   // ---- OpenROAD fork: analysis_corner support (end) ----

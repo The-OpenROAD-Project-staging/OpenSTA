@@ -179,7 +179,7 @@ public:
                                             const MinMaxAll *setup_hold);
   // Purge corner clock uncertainties keyed by dying Clock objects
   // (nullptr purges all clocks).
-  void purgeAnalysisCornerClockUncertainties(const Clock *clk);
+  void purgeCornerClkUncertainties(const Clock *clk);
   // Empty a corner's overlay Sdcs in every mode and its corner-stored
   // clock uncertainties (bundle redefine).
   void clearAnalysisCornerSdc(AnalysisCorner *corner);

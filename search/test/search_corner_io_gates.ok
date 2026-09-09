@@ -43,3 +43,11 @@ Endpoint                               Delay   Delay   Slack
 ------------------------------------------------------------
 reg1/D (DFF_X1)                         9.84    1.17    8.67 (MET)
 
+=== after clk3 replaced clk2 on the same pin ===
+max_delay/setup group clk3
+
+                                     Required  Actual
+Endpoint                               Delay   Delay   Slack
+------------------------------------------------------------
+reg1/D (DFF_X1)                         9.84    1.16    8.68 (MET)
+

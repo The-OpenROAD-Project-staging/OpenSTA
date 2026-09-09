@@ -536,7 +536,7 @@ Sta::clear()
   for (Mode *mode : modes_)
     mode->clearCornerSdcs();
   // The mode Sdc clear above deleted all Clock objects.
-  purgeAnalysisCornerClockUncertainties(nullptr);
+  purgeCornerClkUncertainties(nullptr);
   // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
@@ -1243,13 +1243,6 @@ void
 Sta::removeClock(Clock *clk,
                  Sdc *sdc)
 {
-  // ---- OpenROAD fork: analysis_corner support (begin) ----
-  purgeAnalysisCornerClockUncertainties(clk);
-  // Corner overlay Sdcs hold this clock's edges/latencies but never own
-  // the Clock object; drop their references before the base Sdc frees it.
-  for (const auto [corner, corner_sdc] : sdc->mode()->cornerSdcs())
-    corner_sdc->removeClockReferences(clk);
-  // ---- OpenROAD fork: analysis_corner support (end) ----
   sdc->removeClock(clk);
   search_->arrivalsInvalid();
   power_->activitiesInvalid();

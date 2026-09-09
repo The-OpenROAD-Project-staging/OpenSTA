@@ -330,7 +330,7 @@ Sta::removeAnalysisCornerClockUncertainty(AnalysisCorner *corner,
 // clocks die (remove_clock, Sta::clear) so recycled Clock addresses cannot
 // inherit stale corner data.
 void
-Sta::purgeAnalysisCornerClockUncertainties(const Clock *clk)
+Sta::purgeCornerClkUncertainties(const Clock *clk)
 {
   for (AnalysisCorner *corner : analysis_corners_) {
     if (clk)
@@ -338,6 +338,16 @@ Sta::purgeAnalysisCornerClockUncertainties(const Clock *clk)
     else
       corner->clearClockUncertainties();
   }
+}
+
+void
+purgeCornerClkRefs(const Mode *mode,
+                   Clock *clk)
+{
+  Sta::sta()->purgeCornerClkUncertainties(clk);
+  // The overlays reference the mode's clocks but never own them.
+  for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+    corner_sdc->removeClockReferences(clk);
 }
 
 const ClockUncertainties *

@@ -36,6 +36,15 @@ using AnalysisCornerNameMap = std::map<std::string, AnalysisCorner*, std::less<>
 void
 defineAnalysisCornerProperties(Sta *sta);
 
+// Drop corner references to a dying mode clock: the corners' clock
+// uncertainties and the mode's overlay Sdc constraints referencing it.
+// Called from Sdc::removeClock, which every clock deletion funnels
+// through (Sta::removeClock for delete_clock, and Sdc::makeClock ->
+// deletePinClocks when a new clock claims a clock pin).
+void
+purgeCornerClkRefs(const Mode *mode,
+                   Clock *clk);
+
 // get_analysis_corners -filter support (defined in sdc/FilterObjects.cc,
 // fenced fork hunk, next to the private FilterExpr machinery it needs).
 AnalysisCornerSeq
