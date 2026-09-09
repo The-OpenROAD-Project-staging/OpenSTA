@@ -22,6 +22,9 @@ proc define_analysis_corner { args } {
   set liberty_min_files {}
   set liberty_max_files {}
   if { [info exists keys(-liberty)] } {
+    if { [info exists keys(-liberty_min)] || [info exists keys(-liberty_max)] } {
+      sta_error 3715 "-liberty and -liberty_min/-liberty_max are mutually exclusive."
+    }
     set liberty_min_files $keys(-liberty)
     set liberty_max_files $keys(-liberty)
   } elseif { [info exists keys(-liberty_min)] && [info exists keys(-liberty_max)] } {
@@ -34,6 +37,9 @@ proc define_analysis_corner { args } {
   set spef_min_name ""
   set spef_max_name ""
   if { [info exists keys(-spef)] } {
+    if { [info exists keys(-spef_min)] || [info exists keys(-spef_max)] } {
+      sta_error 3716 "-spef and -spef_min/-spef_max are mutually exclusive."
+    }
     set spef_min_name $keys(-spef)
     set spef_max_name $keys(-spef)
   } elseif { [info exists keys(-spef_min)] && [info exists keys(-spef_max)] } {

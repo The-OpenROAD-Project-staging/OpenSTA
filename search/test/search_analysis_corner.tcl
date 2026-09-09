@@ -65,6 +65,12 @@ puts [catch { define_scene bad2 -analysis_corner fast } msg]
 puts $msg
 puts [catch { define_analysis_corner bad3 -liberty_min NangateOpenCellLibrary_slow } msg]
 puts $msg
+# -liberty/-spef are mutually exclusive with their min/max forms.
+puts [catch { define_analysis_corner bad4 -liberty NangateOpenCellLibrary_slow \
+                -liberty_max NangateOpenCellLibrary_fast } msg]
+puts $msg
+puts [catch { define_analysis_corner bad5 -spef spef_a -spef_min spef_b } msg]
+puts $msg
 
 # Timing per scene; composed ss2 must match explicit ss.
 report_checks -scenes ss
