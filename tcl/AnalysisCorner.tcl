@@ -10,7 +10,24 @@ define_cmd_args "define_analysis_corner" {name\
                                             [-liberty liberty_files \
                                              | -liberty_min liberty_min_files -liberty_max liberty_max_files]\
                                             [-spef spef_name | -spef_min spef_min_name -spef_max spef_max_name]\
-                                            [-sdc sdc_files]}
+                                            [-sdc sdc_files]} \
+  -help {The `define_analysis_corner` command defines an analysis corner, a named collection of the setup data that varies with an operating point: the Liberty libraries, the SPEF parasitics and the SDC constraints that describe that operating point. A corner is defined once and reused by the scenes of different modes.
+
+The corner's Liberty and SPEF arguments are composed into `define_scene -analysis_corner`, so the resulting scene is the same as one defined with explicit `-liberty` and `-spef` arguments. Explicit `define_scene` arguments take precedence over the corner's.
+
+The corner's SDC files are read for a mode and corner combination when the first scene naming that pair is defined. They are read in a corner scope, so only constraints that describe an operating point are accepted. See `set_cmd_analysis_corner`.
+
+Redefining a corner replaces its data and empties the corner-scoped constraints read for it. Use `get_analysis_corners` to find defined corners.} \
+  -arg_help {
+    name {The name of the analysis corner.}
+    -liberty {Liberty library name or filename used with `read_liberty`, for both min and max delay.}
+    -liberty_min {Min-delay Liberty library name or filename. Requires `-liberty_max`. Mutually exclusive with `-liberty`.}
+    -liberty_max {Max-delay Liberty library name or filename. Requires `-liberty_min`. Mutually exclusive with `-liberty`.}
+    -spef {SPEF parasitics name from `read_spef -name`, for both min and max delay.}
+    -spef_min {Min-delay SPEF parasitics name. Requires `-spef_max`. Mutually exclusive with `-spef`.}
+    -spef_max {Max-delay SPEF parasitics name. Requires `-spef_min`. Mutually exclusive with `-spef`.}
+    -sdc {SDC files read in the corner scope of each mode that uses this corner.}
+  }
 
 proc define_analysis_corner { args } {
   parse_key_args "define_analysis_corner" args \
@@ -73,7 +90,14 @@ proc define_analysis_corner { args } {
   }
 }
 
-define_cmd_args "get_analysis_corners" {[-filter expr] [corner_name]}
+define_cmd_args "get_analysis_corners" {[-filter expr] [corner_name]} \
+  -help {The `get_analysis_corners` command is used to find the analysis corners matching a pattern. With no arguments it returns all of the defined corners.
+
+Use `get_scenes -filter {analysis_corner == corner_name}` to find the scenes that use a corner.} \
+  -arg_help {
+    -filter {A filter expression. See the section "Filter Expressions".}
+    corner_name {An analysis corner name pattern.}
+  }
 
 proc get_analysis_corners { args } {
   parse_key_args "get_analysis_corners" args keys {-filter} flags {}
@@ -90,7 +114,14 @@ proc get_analysis_corners { args } {
   return $corners
 }
 
-define_cmd_args "set_scene_analysis_corner" {scene_name corner_name}
+define_cmd_args "set_scene_analysis_corner" {scene_name corner_name} \
+  -help {The `set_scene_analysis_corner` command associates an existing scene with an analysis corner. The corner's SDC files are read for the scene's mode and corner combination if no scene has used that pair before.
+
+Unlike `define_scene -analysis_corner`, the scene's Liberty libraries and SPEF parasitics are not changed.} \
+  -arg_help {
+    scene_name {The name of an existing scene.}
+    corner_name {The name of an existing analysis corner.}
+  }
 
 proc set_scene_analysis_corner { args } {
   check_argc_eq2 "set_scene_analysis_corner" $args
@@ -219,7 +250,17 @@ proc define_scene { args } {
 #
 ################################################################
 
-define_cmd_args "set_cmd_analysis_corner" {corner_name}
+define_cmd_args "set_cmd_analysis_corner" {corner_name} \
+  -help {The `set_cmd_analysis_corner` command enters a corner scope. SDC commands that follow it write into the constraints of the current mode and this corner rather than the constraints of the mode. Use `unset_cmd_analysis_corner` to leave the corner scope.
+
+Only constraints that describe an operating point can be scoped to a corner: timing derates, input and output delays, clock uncertainty, and clock latency and source insertion. Structural constraints such as clocks, exceptions and case analysis are mode level and are rejected in a corner scope.
+
+Corner constraints override the mode's for the scenes that use the corner. The mode's constraints apply where the corner defines none.
+
+`read_sdc -analysis_corner` reads a file in a corner scope and restores the previous scope when it finishes.} \
+  -arg_help {
+    corner_name {The name of an existing analysis corner.}
+  }
 
 proc set_cmd_analysis_corner { args } {
   check_argc_eq1 "set_cmd_analysis_corner" $args
@@ -231,7 +272,8 @@ proc set_cmd_analysis_corner { args } {
   set_cmd_analysis_corner_cmd $corner
 }
 
-define_cmd_args "unset_cmd_analysis_corner" {}
+define_cmd_args "unset_cmd_analysis_corner" {} \
+  -help {The `unset_cmd_analysis_corner` command leaves the corner scope entered with `set_cmd_analysis_corner`. SDC commands that follow it write into the constraints of the current mode.}
 
 proc unset_cmd_analysis_corner { args } {
   check_argc_eq0 "unset_cmd_analysis_corner" $args
