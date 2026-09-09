@@ -1451,6 +1451,18 @@ public:
       || !inst_derating_factors_.empty()
       || !cell_derating_factors_.empty();
   }
+  // Reference-only cleanup when a mode clock dies: corner overlay Sdcs
+  // reference the mode's Clock objects but never own them. Constraint
+  // classes not listed here cannot exist in an overlay (corner-scope
+  // guard).
+  void removeClockReferences(Clock *clk)
+  {
+    deleteInputDelaysReferencing(clk);
+    deleteOutputDelaysReferencing(clk);
+    deleteClockLatenciesReferencing(clk);
+    deleteClockInsertionsReferencing(clk);
+    deleteInterClockUncertaintiesReferencing(clk);
+  }
   // ---- OpenROAD fork: analysis_corner support (end) ----
 
 private:

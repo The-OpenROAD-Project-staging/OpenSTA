@@ -31,3 +31,24 @@ define_analysis_corner ssc -liberty NangateOpenCellLibrary_slow
 puts "=== after redefine with data ==="
 report_checks -to [get_ports out1] -format end
 report_checks -from [get_pins buf1/Z] -format end
+
+# Overlay references die with their objects. delete_clock purges the
+# corner's constraints referencing the clock (in2 falls back to the
+# mode's clk delay); delete_instance purges pin-keyed corner constraints.
+create_clock -name vclk -period 10
+set_cmd_analysis_corner ssc
+set_input_delay 2.0 -clock vclk [get_ports in2]
+set_clock_latency -source 0.4 [get_clocks vclk]
+unset_cmd_analysis_corner
+puts "=== corner delay on in2 wrt vclk ==="
+report_checks -from [get_ports in2] -format end
+delete_clock vclk
+puts "=== after delete_clock vclk: falls back to mode delay ==="
+report_checks -from [get_ports in2] -format end
+
+set_cmd_analysis_corner ssc
+set_input_delay 1.2 -clock clk [get_pins buf2/Z]
+unset_cmd_analysis_corner
+delete_instance buf2
+puts "=== after delete_instance buf2 ==="
+report_checks -format end

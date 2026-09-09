@@ -1245,6 +1245,10 @@ Sta::removeClock(Clock *clk,
 {
   // ---- OpenROAD fork: analysis_corner support (begin) ----
   purgeAnalysisCornerClockUncertainties(clk);
+  // Corner overlay Sdcs hold this clock's edges/latencies but never own
+  // the Clock object; drop their references before the base Sdc frees it.
+  for (const auto [corner, corner_sdc] : sdc->mode()->cornerSdcs())
+    corner_sdc->removeClockReferences(clk);
   // ---- OpenROAD fork: analysis_corner support (end) ----
   sdc->removeClock(clk);
   search_->arrivalsInvalid();
@@ -4968,8 +4972,13 @@ Sta::deleteNetBefore(const Net *net)
     }
     delete pin_iter;
   }
-  for (Mode *mode : modes_)
+  for (Mode *mode : modes_) {
     mode->sdc()->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
+  }
   clk_skews_->clear();
   power_->powerInvalid();
 }
@@ -5000,6 +5009,10 @@ Sta::deleteLeafInstanceBefore(const Instance *inst)
   for (Mode *mode : modes_) {
     mode->sim()->deleteInstanceBefore(inst);
     mode->sdc()->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
   }
   clk_skews_->clear();
   power_->powerInvalid();
@@ -5080,6 +5093,10 @@ Sta::deletePinBefore(const Pin *pin)
 
   for (const Mode *mode : modes_) {
     mode->sdc()->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
     mode->sim()->deletePinBefore(pin);
     mode->clkNetwork()->deletePinBefore(pin);
   }
