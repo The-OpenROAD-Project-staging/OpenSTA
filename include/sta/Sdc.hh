@@ -1440,6 +1440,31 @@ protected:
   WireloadMode wireload_mode_;
   const WireloadSelection *wireload_selection_[MinMax::index_count];
 
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+public:
+  // True when any timing derates are set. Used to decide whether an
+  // analysis corner overlay Sdc overrides the mode Sdc for derate queries.
+  bool hasDeratingFactors() const
+  {
+    return derating_factors_ != nullptr
+      || !net_derating_factors_.empty()
+      || !inst_derating_factors_.empty()
+      || !cell_derating_factors_.empty();
+  }
+  // Reference-only cleanup when a mode clock dies: corner overlay Sdcs
+  // reference the mode's Clock objects but never own them. Constraint
+  // classes not listed here cannot exist in an overlay (corner-scope
+  // guard).
+  void removeClockReferences(Clock *clk)
+  {
+    deleteInputDelaysReferencing(clk);
+    deleteOutputDelaysReferencing(clk);
+    deleteClockLatenciesReferencing(clk);
+    deleteClockInsertionsReferencing(clk);
+    deleteInterClockUncertaintiesReferencing(clk);
+  }
+  // ---- OpenROAD fork: analysis_corner support (end) ----
+
 private:
   friend class WriteSdc;
   friend class FindNetCaps;

@@ -293,6 +293,10 @@ Sta::makeComponents()
   updateComponentsState();
 
   makeObservers();
+
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  defineAnalysisCornerProperties(this);
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
@@ -517,6 +521,9 @@ Sta::~Sta()
   deleteContents(parasitics_name_map_);
   deleteContents(modes_);
   deleteContents(scenes_);
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  deleteAnalysisCorners();
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
@@ -525,6 +532,12 @@ Sta::clear()
   clearNonSdc();
   for (Mode *mode : modes_)
     mode->sdc()->clear();
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  for (Mode *mode : modes_)
+    mode->clearCornerSdcs();
+  // The mode Sdc clear above deleted all Clock objects.
+  purgeCornerClkUncertainties(nullptr);
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
@@ -547,6 +560,10 @@ Sta::clearNonSdc()
     mode->sim()->clear();
     // ref_pin edges are owned by the graph deleted below; force a rebuild.
     mode->sdc()->inputDelayRefPinEdgesInvalid();
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->inputDelayRefPinEdgesInvalid();
+    // ---- OpenROAD fork: analysis_corner support (end) ----
   }
   search_->clear();
 
@@ -4951,8 +4968,13 @@ Sta::deleteNetBefore(const Net *net)
     }
     delete pin_iter;
   }
-  for (Mode *mode : modes_)
+  for (Mode *mode : modes_) {
     mode->sdc()->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
+  }
   clk_skews_->clear();
   power_->powerInvalid();
 }
@@ -4983,6 +5005,10 @@ Sta::deleteLeafInstanceBefore(const Instance *inst)
   for (Mode *mode : modes_) {
     mode->sim()->deleteInstanceBefore(inst);
     mode->sdc()->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
   }
   clk_skews_->clear();
   power_->powerInvalid();
@@ -5063,6 +5089,10 @@ Sta::deletePinBefore(const Pin *pin)
 
   for (const Mode *mode : modes_) {
     mode->sdc()->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
     mode->sim()->deletePinBefore(pin);
     mode->clkNetwork()->deletePinBefore(pin);
   }

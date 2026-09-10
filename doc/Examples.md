@@ -116,6 +116,54 @@ create_clock -name m2_clk -period 500 {clk1 clk3}
 set_output_delay -clock m2_clk 100 out
 ```
 
+## Analysis corners
+
+An analysis corner is a named collection of the setup data that varies
+with an operating point: the min/max Liberty libraries, the SPEF
+parasitics, and the SDC constraints that describe that operating point.
+A scene is one mode paired with one analysis corner, so corners are
+defined once and reused across modes.
+
+```tcl
+define_analysis_corner ss_cmax -liberty asap7_small_ss -spef reg1_ss -sdc derates_ss.sdc
+read_sdc -mode func func.sdc
+define_scene func_ss -mode func -analysis_corner ss_cmax
+```
+
+The corner's Liberty and SPEF arguments are composed into
+`define_scene`, so the resulting scene is the same as one defined with
+explicit `-liberty` and `-spef` arguments; explicit arguments take
+precedence over the corner's. The corner's SDC files are read for a mode
+and corner combination when the first scene naming that pair is defined.
+Use `-liberty_min`/`-liberty_max` and `-spef_min`/`-spef_max` for
+different min and max data; they are mutually exclusive with `-liberty`
+and `-spef`.
+
+Constraints that describe an operating point can be scoped to a corner:
+timing derates, input and output delays, clock uncertainty, and clock
+latency and source insertion. Structural constraints such as clocks,
+exceptions and case analysis are mode level and are rejected in a corner
+scope. A corner scope is entered with `read_sdc -analysis_corner` or
+interactively with `set_cmd_analysis_corner`.
+
+```tcl
+read_sdc -mode func -analysis_corner ss_cmax derates_ss.sdc
+
+set_cmd_analysis_corner ss_cmax
+set_timing_derate -late 1.1
+unset_cmd_analysis_corner
+```
+
+Corner constraints override the mode's for the scenes that use the
+corner, and the mode's constraints apply where the corner defines none.
+Analysis corners are objects: `get_analysis_corners` finds them by
+pattern or with `-filter`, `get_property` reads their properties,
+`define_property` and `set_property` with `-object_type analysis_corner`
+add user defined properties, and
+`get_scenes -filter {analysis_corner == ss_cmax}` selects the scenes
+using a corner. `set_scene_analysis_corner` associates an existing scene
+with a corner.
+
 ## Statistical timing analysis
 
 OpenSTA also supports statistical timing analysis with Liberty Variation
