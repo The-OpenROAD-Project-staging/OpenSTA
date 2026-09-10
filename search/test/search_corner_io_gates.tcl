@@ -32,9 +32,13 @@ puts "=== after redefine with data ==="
 report_checks -to [get_ports out1] -format end
 report_checks -from [get_pins buf1/Z] -format end
 
-# Overlay references die with their objects. delete_clock purges the
-# corner's constraints referencing the clock (in2 falls back to the
-# mode's clk delay); delete_instance purges pin-keyed corner constraints.
+# Overlay references die with their objects: delete_clock purges the
+# corner's constraints referencing the clock, so in2 falls back to the
+# mode's clk delay.
+# Deleting a pin or instance that an overlay constrains is not covered
+# here. Deleting SDC constrained objects is not supported by OpenSTA at
+# all (the caller is expected to check Sdc::isConstrained first), so
+# there is no purge behavior to assert.
 create_clock -name vclk -period 10
 set_cmd_analysis_corner ssc
 set_input_delay 2.0 -clock vclk [get_ports in2]
@@ -45,13 +49,6 @@ report_checks -from [get_ports in2] -format end
 delete_clock vclk
 puts "=== after delete_clock vclk: falls back to mode delay ==="
 report_checks -from [get_ports in2] -format end
-
-set_cmd_analysis_corner ssc
-set_input_delay 1.2 -clock clk [get_pins buf2/Z]
-unset_cmd_analysis_corner
-delete_instance buf2
-puts "=== after delete_instance buf2 ==="
-report_checks -format end
 
 # A clock also dies when a new clock claims its last pin, which does not
 # go through delete_clock: the corner's references must be purged there

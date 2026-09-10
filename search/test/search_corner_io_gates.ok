@@ -35,14 +35,6 @@ Endpoint                               Delay   Delay   Slack
 ------------------------------------------------------------
 reg1/D (DFF_X1)                         9.84    1.17    8.67 (MET)
 
-=== after delete_instance buf2 ===
-max_delay/setup group clk
-
-                                     Required  Actual
-Endpoint                               Delay   Delay   Slack
-------------------------------------------------------------
-reg1/D (DFF_X1)                         9.84    1.17    8.67 (MET)
-
 === after clk3 replaced clk2 on the same pin ===
 max_delay/setup group clk3
 
