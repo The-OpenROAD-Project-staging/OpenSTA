@@ -931,6 +931,9 @@ public:
   OutputDelaySet *outputDelaysLeafPin(const Pin *leaf_pin) const;
   [[nodiscard]] bool hasOutputDelay(const Pin *leaf_pin) const;
 
+  // set_input_delay or set_output_delay defined on pin.
+  bool hasPortDelays(const Pin *pin);
+
   const PortExtCap *portExtCap(const Port *port) const;
   bool hasPortExtCap(const Port *port) const;
   void portExtCap(const Port *port,
@@ -1232,6 +1235,7 @@ protected:
                          InputDelay *except);
   void deleteInputDelaysReferencing(const Clock *clk);
   void deleteInputDelay(InputDelay *input_delay);
+  void deletePortDelayReferences(const Pin *pin);
 
   OutputDelay *findOutputDelay(const Pin *pin,
                                const ClockEdge *clk_edge);
@@ -1348,6 +1352,7 @@ protected:
   InputDelaySet input_delays_;
   InputDelaysPinMap input_delay_pin_map_;
   bool have_input_delay_ref_pins_{false};
+  bool have_output_delay_ref_pins_{false};
   // Input delays on hierarchical pins are indexed by the load pins.
   InputDelaysPinMap input_delay_leaf_pin_map_;
   InputDelaysPinMap input_delay_internal_pin_map_;
@@ -1439,6 +1444,31 @@ protected:
   Wireload *wireload_[MinMax::index_count];
   WireloadMode wireload_mode_;
   const WireloadSelection *wireload_selection_[MinMax::index_count];
+
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+public:
+  // True when any timing derates are set. Used to decide whether an
+  // analysis corner overlay Sdc overrides the mode Sdc for derate queries.
+  bool hasDeratingFactors() const
+  {
+    return derating_factors_ != nullptr
+      || !net_derating_factors_.empty()
+      || !inst_derating_factors_.empty()
+      || !cell_derating_factors_.empty();
+  }
+  // Reference-only cleanup when a mode clock dies: corner overlay Sdcs
+  // reference the mode's Clock objects but never own them. Constraint
+  // classes not listed here cannot exist in an overlay (corner-scope
+  // guard).
+  void removeClockReferences(Clock *clk)
+  {
+    deleteInputDelaysReferencing(clk);
+    deleteOutputDelaysReferencing(clk);
+    deleteClockLatenciesReferencing(clk);
+    deleteClockInsertionsReferencing(clk);
+    deleteInterClockUncertaintiesReferencing(clk);
+  }
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 
 private:
   friend class WriteSdc;

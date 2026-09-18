@@ -203,6 +203,8 @@ set(STA_SOURCE
   search/ReportPath.cc
   search/Search.cc
   search/SearchPred.cc
+  # OpenROAD fork: analysis_corner support.
+  search/AnalysisCorner.cc
   search/Scene.cc
   search/Sim.cc
   search/Sta.cc
@@ -273,6 +275,8 @@ set(STA_TCL_FILES
   search/Search.tcl
   spice/WriteSpice.tcl
   verilog/Verilog.tcl
+  # OpenROAD fork: analysis_corner support (must follow tcl/Sta.tcl).
+  tcl/AnalysisCorner.tcl
   )
 
 ################################################################
@@ -493,6 +497,8 @@ set(SWIG_FILES
   ${STA_HOME}/tcl/StaTclTypes.i
   ${STA_HOME}/util/Util.i
   ${STA_HOME}/verilog/Verilog.i
+  # OpenROAD fork: analysis_corner support.
+  ${STA_HOME}/search/AnalysisCorner.i
   )
 
 set_property(SOURCE ${STA_SWIG_FILE}

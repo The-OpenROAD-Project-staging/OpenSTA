@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "ArcDelayCalc.hh"
 #include "CheckCapacitances.hh"
@@ -293,6 +294,10 @@ Sta::makeComponents()
   updateComponentsState();
 
   makeObservers();
+
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  defineAnalysisCornerProperties(this);
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
@@ -517,14 +522,24 @@ Sta::~Sta()
   deleteContents(parasitics_name_map_);
   deleteContents(modes_);
   deleteContents(scenes_);
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  deleteAnalysisCorners();
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
 Sta::clear()
 {
   clearNonSdc();
+  power_->clear();
   for (Mode *mode : modes_)
     mode->sdc()->clear();
+  // ---- OpenROAD fork: analysis_corner support (begin) ----
+  for (Mode *mode : modes_)
+    mode->clearCornerSdcs();
+  // The mode Sdc clear above deleted all Clock objects.
+  purgeCornerClkUncertainties(nullptr);
+  // ---- OpenROAD fork: analysis_corner support (end) ----
 }
 
 void
@@ -534,7 +549,6 @@ Sta::clearNonSdc()
   levelize_->clear();
   deleteParasitics();
   graph_delay_calc_->clear();
-  power_->clear();
   if (check_min_pulse_widths_)
     check_min_pulse_widths_->clear();
   if (check_min_periods_)
@@ -547,6 +561,10 @@ Sta::clearNonSdc()
     mode->sim()->clear();
     // ref_pin edges are owned by the graph deleted below; force a rebuild.
     mode->sdc()->inputDelayRefPinEdgesInvalid();
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->inputDelayRefPinEdgesInvalid();
+    // ---- OpenROAD fork: analysis_corner support (end) ----
   }
   search_->clear();
 
@@ -631,6 +649,7 @@ void
 Sta::networkChangedNonSdc()
 {
   clearNonSdc();
+  power_->clearNonSdc();
 }
 
 void
@@ -4951,8 +4970,13 @@ Sta::deleteNetBefore(const Net *net)
     }
     delete pin_iter;
   }
-  for (Mode *mode : modes_)
+  for (Mode *mode : modes_) {
     mode->sdc()->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteNetBefore(net);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
+  }
   clk_skews_->clear();
   power_->powerInvalid();
 }
@@ -4983,6 +5007,10 @@ Sta::deleteLeafInstanceBefore(const Instance *inst)
   for (Mode *mode : modes_) {
     mode->sim()->deleteInstanceBefore(inst);
     mode->sdc()->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deleteInstanceBefore(inst);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
   }
   clk_skews_->clear();
   power_->powerInvalid();
@@ -5061,11 +5089,20 @@ Sta::deletePinBefore(const Pin *pin)
     }
   }
 
+  bool port_delay_deleted = false;
   for (const Mode *mode : modes_) {
+    port_delay_deleted |= mode->sdc()->hasPortDelays(pin);
     mode->sdc()->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (begin) ----
+    for (const auto [corner, corner_sdc] : mode->cornerSdcs())
+      corner_sdc->deletePinBefore(pin);
+    // ---- OpenROAD fork: analysis_corner support (end) ----
     mode->sim()->deletePinBefore(pin);
     mode->clkNetwork()->deletePinBefore(pin);
   }
+  // Tags on pins downstream from input delays reference the input delay.
+  if (port_delay_deleted)
+    search_->arrivalsInvalid();
 }
 
 void
@@ -6141,14 +6178,15 @@ void
 Sta::writePathSpice(const Path *path,
                     std::string_view spice_filename,
                     std::string_view subckt_filename,
-                    std::string_view lib_subckt_filename,
+                    StringSeq lib_subckt_filenames,
                     std::string_view model_filename,
                     std::string_view power_name,
                     std::string_view gnd_name,
                     CircuitSim ckt_sim)
 {
   ensureLibLinked();
-  sta::writePathSpice(path, spice_filename, subckt_filename, lib_subckt_filename,
+  sta::writePathSpice(path, spice_filename, subckt_filename,
+                      std::move(lib_subckt_filenames),
                       model_filename, power_name, gnd_name, ckt_sim, this);
 }
 
