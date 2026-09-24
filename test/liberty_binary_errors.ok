@@ -1,0 +1,8 @@
+Error: 1900 liberty_binary_errors_text.blib is not a valid binary liberty file.
+Error: 1900 liberty_binary_errors.blib is not a valid binary liberty file.
+libraries loaded: 0
+Error: 1902 liberty_binary_errors_v1.blib is binary liberty version 1; this build reads version 2. Regenerate it with write_liberty_binary.
+Error: cannot read file does_not_exist.blib.
+Error: cannot read file does_not_exist.lib.
+partial output left behind: 0
+Error: cannot write file /nonexistent_dir/out.blib.
