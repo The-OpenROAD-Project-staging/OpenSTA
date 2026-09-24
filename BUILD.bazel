@@ -395,6 +395,7 @@ cc_library(
         "dcalc/PrimaDelayCalc.hh",
         # Needed by src/dbSta to synthesize LibertyCells programmatically.
         "liberty/LibertyBuilder.hh",
+        "liberty/LibertyBinaryWriter.hh",
     ],
     copts = [
         "-Wno-error",
