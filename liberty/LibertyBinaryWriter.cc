@@ -115,17 +115,21 @@ writeLibertyBinary(const char *in_filename,
       out_stream.write(entry.first.c_str(), entry.first.size());
       writeRaw(&out_stream, entry.second);
     }
-
-    // A failed write (e.g. disk full) silently poisons the stream, so check
-    // once at the end rather than reporting success for a corrupt file.
-    if (!out_stream.good())
-      report->error(1901, "error writing {}.", out_filename);
   }
   catch (...) {
-    // Don't leave behind a partial file with a valid magic number.
+    // A parse error leaves a partial file with a valid magic number behind.
     out_stream.close();
     std::remove(out_filename);
     throw;
+  }
+
+  // A failed write (e.g. disk full) silently poisons the stream, and the last
+  // buffer is not flushed until close(), so check afterwards and remove the
+  // corrupt file rather than reporting success.
+  out_stream.close();
+  if (out_stream.fail()) {
+    std::remove(out_filename);
+    report->error(1901, "error writing {}.", out_filename);
   }
 }
 

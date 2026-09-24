@@ -44,6 +44,17 @@ catch { write_liberty_binary does_not_exist.lib $out_file } result
 puts_error $result
 puts "partial output left behind: [file exists $out_file]"
 
+# A syntax error in the input leaves no partial output behind either.
+set bad_lib [make_result_file liberty_binary_errors_truncated.lib]
+file copy -force liberty_float_as_str.lib $bad_lib
+set stream [open $bad_lib r+]
+chan truncate $stream [expr { [file size $bad_lib] / 2 }]
+close $stream
+set out_file [make_result_file liberty_binary_errors_truncated.blib]
+catch { write_liberty_binary $bad_lib $out_file } result
+puts_error $result
+puts "partial output left behind: [file exists $out_file]"
+
 # An unwritable output path is reported.
 catch { write_liberty_binary liberty_float_as_str.lib /nonexistent_dir/out.blib } result
 puts_error $result
