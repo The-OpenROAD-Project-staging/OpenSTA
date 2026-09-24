@@ -23,6 +23,7 @@
 // This notice may not be removed or altered from any source distribution.
 
 #include "LibertyReader.hh"
+#include "LibertyBinaryCommon.hh"
 #include "LibertyBinaryReader.hh"
 
 #include <cctype>
@@ -74,13 +75,25 @@ scaleFloats(FloatSeq &floats,
             float scale,
             size_t first = 0);
 
+// Binary liberty files start with LIBERTY_BINARY_MAGIC. Checked in addition
+// to the .blib extension so a renamed file is still read as binary.
+static bool
+isLibertyBinaryFile(std::string_view filename)
+{
+  std::ifstream stream(std::string(filename), std::ios::binary);
+  char magic[LIBERTY_BINARY_MAGIC_SIZE];
+  if (!stream || !stream.read(magic, LIBERTY_BINARY_MAGIC_SIZE))
+    return false;
+  return std::string_view(magic, LIBERTY_BINARY_MAGIC_SIZE) == LIBERTY_BINARY_MAGIC;
+}
+
 LibertyLibrary *
 readLibertyFile(std::string_view filename,
                 bool infer_latches,
                 Network *network)
 {
   LibertyReader reader(filename, infer_latches, network);
-  if (filename.ends_with(".blib")) {
+  if (filename.ends_with(".blib") || isLibertyBinaryFile(filename)) {
     std::ifstream stream(std::string(filename), std::ios::binary);
     if (!stream)
       throw FileNotReadable(filename);
