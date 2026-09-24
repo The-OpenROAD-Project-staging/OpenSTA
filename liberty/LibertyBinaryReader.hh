@@ -40,7 +40,8 @@ public:
     inline std::uint8_t readU8() { return *reinterpret_cast<const std::uint8_t*>(ptr_++); }
 
     inline std::uint32_t readU32() {
-        // Assumes little-endian architecture (standard x86/ARM)
+        // Values are stored little-endian, the native byte order of the
+        // hosts this reader supports.
         std::uint32_t val;
         std::memcpy(&val, ptr_, 4); // memcpy is optimized away by compiler to a simple mov
         ptr_ += 4;
