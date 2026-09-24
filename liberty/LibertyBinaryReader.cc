@@ -19,6 +19,7 @@
 #include "LibertyParser.hh"
 #include "Report.hh"
 
+#include <cstring>
 #include <istream>
 #include <memory>
 #include <string_view>
@@ -303,11 +304,14 @@ LibertyBinaryReader::readValue()
     return parser_.makeAttrValueFloat(readFloatValue());
   else if (val_type == LibertyBinaryValueType::FLOAT_SEQ) {
     std::uint32_t count = readUInt32();
-    require(static_cast<size_t>(count) * sizeof(float));
-    // Range construction copies in one pass, without vector's zero fill.
-    const float *floats = reinterpret_cast<const float*>(cursor_.current());
-    std::vector<float> seq(floats, floats + count);
-    cursor_.setPtr(cursor_.current() + count * sizeof(float));
+    size_t bytes = static_cast<size_t>(count) * sizeof(float);
+    require(bytes);
+    // The floats follow 1-byte tags, so they are neither aligned nor float
+    // objects; copy the bytes out instead of reading through a float pointer.
+    std::vector<float> seq(count);
+    if (count > 0)
+      std::memcpy(seq.data(), cursor_.current(), bytes);
+    cursor_.setPtr(cursor_.current() + bytes);
     return parser_.makeAttrValueFloatSeq(std::move(seq));
   }
   corruptError();
