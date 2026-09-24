@@ -95,6 +95,9 @@ private:
   void readSimpleAttr();
   void readComplexAttr();
   void readVariable();
+  // Source line of the statement being read (zigzag varint delta).
+  int readLine();
+  std::uint32_t readVarint();
 
   // Helpers
   void readStringTable();
@@ -110,16 +113,14 @@ private:
   LibertyAttrValueSeq *readValues();
   // Error unless bytes remain before the end of the buffer.
   void require(size_t bytes);
-  // Report::error throws, so this does not return.
+  // Report::error throws, so these do not return.
   void corruptError();
+  void versionError(std::uint32_t version);
 
   LibertyParser parser_;
   BinaryCursor cursor_;
   std::vector<std::string> string_table_;
-  // Synthetic, monotonically increasing line numbers. The binary format has no
-  // line numbers, but LibertyReader keys maps (e.g. LibertyPortGroupMap) on
-  // group line() via LibertyGroupLineLess, so each statement needs a distinct
-  // line in read order.
-  int next_line_ = 1;
+  // Line of the previous statement; statement lines are stored as deltas.
+  int last_line_ = 0;
 };
 } // namespace

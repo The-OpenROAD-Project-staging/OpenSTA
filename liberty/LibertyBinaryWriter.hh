@@ -57,12 +57,18 @@ private:
   void writeFloat(float val);
   void writeValue(const LibertyAttrValue *value);
   void writeFloatSeq(const std::vector<float> &floats);
+  // Source line of a statement, as a zigzag varint delta from the previous
+  // statement's line.
+  void writeLine(int line);
+  void writeVarint(std::uint32_t val);
 
   std::ostream *stream_;
   LibertyStringTable string_table_;
   // Open group nesting depth; used to free top-level group subtrees once
   // serialized so large libraries don't accumulate in memory.
   int depth_ = 0;
+  // Line of the previous statement, for delta encoding.
+  int last_line_ = 0;
 };
 
 void

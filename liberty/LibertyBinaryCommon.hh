@@ -16,12 +16,33 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace sta {
 
 // Magic number for binary liberty files: "STALIB01"
 inline constexpr char LIBERTY_BINARY_MAGIC[] = "STALIB01";
+inline constexpr size_t LIBERTY_BINARY_MAGIC_SIZE = sizeof(LIBERTY_BINARY_MAGIC) - 1;
+// Bumped when the record layout changes; the reader rejects other versions.
+// 1: initial layout.
+// 2: group, attribute and variable records carry the source line of the
+//    statement after the tag, as a zigzag varint delta from the previous
+//    statement's line.
+inline constexpr uint32_t LIBERTY_BINARY_VERSION = 2;
+
+// Zigzag mapping so the (rare) negative line delta also encodes compactly.
+inline constexpr uint32_t
+zigzagEncode(int32_t val)
+{
+  return (static_cast<uint32_t>(val) << 1) ^ static_cast<uint32_t>(val >> 31);
+}
+
+inline constexpr int32_t
+zigzagDecode(uint32_t val)
+{
+  return static_cast<int32_t>(val >> 1) ^ -static_cast<int32_t>(val & 1);
+}
 
 enum class LibertyBinaryTag : uint8_t {
   GROUP_BEGIN = 1,

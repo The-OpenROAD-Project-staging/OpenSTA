@@ -89,7 +89,7 @@ writeLibertyBinary(const char *in_filename,
     LibertyBinaryWriter writer(&out_stream);
     // Write Magic and Version.
     out_stream.write(LIBERTY_BINARY_MAGIC, 8);
-    uint32_t version = 1;
+    uint32_t version = LIBERTY_BINARY_VERSION;
     writeRaw(&out_stream, version);
     uint64_t string_table_offset = 0;
     uint64_t string_table_offset_location = out_stream.tellp();
@@ -140,6 +140,7 @@ LibertyBinaryWriter::begin(const LibertyGroup *group,
 {
   depth_++;
   writeTag(LibertyBinaryTag::GROUP_BEGIN);
+  writeLine(group->line());
   writeString(group->type());
 
   const LibertyAttrValueSeq &params = group->params();
@@ -173,6 +174,7 @@ void
 LibertyBinaryWriter::visitAttr(const LibertySimpleAttr *attr)
 {
   writeTag(LibertyBinaryTag::ATTR_SIMPLE);
+  writeLine(attr->line());
   writeString(attr->name());
   uint32_t count = 1;
   writeRaw(stream_, count);
@@ -183,6 +185,7 @@ void
 LibertyBinaryWriter::visitAttr(const LibertyComplexAttr *attr)
 {
   writeTag(LibertyBinaryTag::ATTR_COMPLEX);
+  writeLine(attr->line());
   writeString(attr->name());
 
   const LibertyAttrValueSeq &values = attr->values();
@@ -208,6 +211,7 @@ void
 LibertyBinaryWriter::visitVariable(LibertyVariable *variable)
 {
   writeTag(LibertyBinaryTag::VARIABLE);
+  writeLine(variable->line());
   writeString(variable->variable());
   writeFloat(variable->value());
 }
@@ -222,6 +226,24 @@ void
 LibertyBinaryWriter::writeType(LibertyBinaryValueType type)
 {
   writeRaw(stream_, static_cast<uint8_t>(type));
+}
+
+void
+LibertyBinaryWriter::writeLine(int line)
+{
+  writeVarint(zigzagEncode(line - last_line_));
+  last_line_ = line;
+}
+
+// Little-endian base 128; the high bit of each byte marks another byte.
+void
+LibertyBinaryWriter::writeVarint(std::uint32_t val)
+{
+  while (val >= 0x80) {
+    writeRaw(stream_, static_cast<uint8_t>(val | 0x80));
+    val >>= 7;
+  }
+  writeRaw(stream_, static_cast<uint8_t>(val));
 }
 
 void

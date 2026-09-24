@@ -49,6 +49,16 @@ LibertyBinaryReader::corruptError()
 }
 
 void
+LibertyBinaryReader::versionError(std::uint32_t version)
+{
+  parser_.report()->error(1902,
+                          "{} is binary liberty version {}; this build reads "
+                          "version {}. Regenerate it with "
+                          "write_liberty_binary.",
+                          parser_.filename(), version, LIBERTY_BINARY_VERSION);
+}
+
+void
 LibertyBinaryReader::require(size_t bytes)
 {
   if (cursor_.remaining() < bytes)
@@ -75,12 +85,15 @@ LibertyBinaryReader::read(std::istream *stream)
 
   cursor_ = BinaryCursor(buffer.get(), size);
 
-  char magic[8];
-  cursor_.readBytes(magic, 8);
-  if (std::string_view(magic, 8) != LIBERTY_BINARY_MAGIC)
+  char magic[LIBERTY_BINARY_MAGIC_SIZE];
+  cursor_.readBytes(magic, LIBERTY_BINARY_MAGIC_SIZE);
+  std::string_view magic_view(magic, LIBERTY_BINARY_MAGIC_SIZE);
+  if (magic_view != LIBERTY_BINARY_MAGIC)
     corruptError();
 
-  cursor_.readU32(); // version
+  std::uint32_t version = cursor_.readU32();
+  if (version != LIBERTY_BINARY_VERSION)
+    versionError(version);
   std::uint64_t string_table_offset = cursor_.readU64();
 
   // Reject offsets outside the file or inside the header (e.g. the header-only
@@ -127,12 +140,10 @@ LibertyBinaryReader::readStatements(bool top_level)
 void
 LibertyBinaryReader::readGroup()
 {
+  int line = readLine();
   std::string type = readString();
   // groupBegin takes ownership of the params (nullptr when there are none).
-  // Each group gets a distinct line so LibertyReader's line-keyed maps treat
-  // sibling groups as distinct.
   LibertyAttrValueSeq *params = readValues();
-  int line = next_line_++;
   parser_.groupBegin(std::move(type), params, line);
 
   readStatements(/*top_level=*/false);
@@ -143,30 +154,55 @@ LibertyBinaryReader::readGroup()
 void
 LibertyBinaryReader::readSimpleAttr()
 {
+  int line = readLine();
   std::string name = readString();
   readUInt32(); // Consume count (always 1 in the format).
   LibertyAttrValue *val = readValue();
   // makeSimpleAttr takes ownership of the value and dispatches to the visitor.
-  parser_.makeSimpleAttr(std::move(name), val, next_line_++);
+  parser_.makeSimpleAttr(std::move(name), val, line);
 }
 
 void
 LibertyBinaryReader::readComplexAttr()
 {
+  int line = readLine();
   std::string name = readString();
   LibertyAttrValueSeq *values = readValues();
   if (!values)
     values = new LibertyAttrValueSeq;
   // makeComplexAttr takes ownership of the values and dispatches to the visitor.
-  parser_.makeComplexAttr(std::move(name), values, next_line_++);
+  parser_.makeComplexAttr(std::move(name), values, line);
 }
 
 void
 LibertyBinaryReader::readVariable()
 {
+  int line = readLine();
   std::string name = readString();
   float val = readFloat();
-  parser_.makeVariable(std::move(name), val, next_line_++);
+  parser_.makeVariable(std::move(name), val, line);
+}
+
+int
+LibertyBinaryReader::readLine()
+{
+  last_line_ += zigzagDecode(readVarint());
+  return last_line_;
+}
+
+std::uint32_t
+LibertyBinaryReader::readVarint()
+{
+  std::uint32_t val = 0;
+  for (int shift = 0; shift < 32; shift += 7) {
+    require(1);
+    std::uint8_t byte = cursor_.readU8();
+    val |= static_cast<std::uint32_t>(byte & 0x7f) << shift;
+    if ((byte & 0x80) == 0)
+      return val;
+  }
+  corruptError();
+  return 0;  // Unreachable; corruptError throws.
 }
 
 LibertyAttrValueSeq *
