@@ -107,6 +107,7 @@ corner-neutral commands:
   with_output_to_variable
   write_gate_gnuplot
   write_gate_spice
+  write_liberty_binary
   write_path_spice
   write_sdc
   write_sdf
