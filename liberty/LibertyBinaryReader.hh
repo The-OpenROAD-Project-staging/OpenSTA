@@ -29,51 +29,58 @@ namespace sta {
 // Unchecked read primitives; LibertyBinaryReader bounds-checks with
 // remaining()/inBounds() before every read so a malformed or foreign-format
 // file is rejected rather than read out of bounds.
-class BinaryCursor {
-    const char* ptr_;
-    const char* end_;
-    const char* start_;
+class BinaryCursor
+{
 public:
-    BinaryCursor(const char* data, size_t size) : ptr_(data), end_(data + size), start_(data) {}
+  BinaryCursor(const char *data,
+               size_t size) :
+    ptr_(data),
+    end_(data + size),
+    start_(data)
+  {
+  }
 
-    // Force inline these to make them disappear in assembly
-    inline std::uint8_t readU8() { return *reinterpret_cast<const std::uint8_t*>(ptr_++); }
+  std::uint8_t readU8() { return static_cast<std::uint8_t>(*ptr_++); }
+  // Multi-byte values are stored little-endian, the native byte order of
+  // the hosts this reader supports, so the memcpy is a plain load.
+  std::uint32_t readU32()
+  {
+    std::uint32_t val;
+    std::memcpy(&val, ptr_, sizeof(val));
+    ptr_ += sizeof(val);
+    return val;
+  }
+  std::uint64_t readU64()
+  {
+    std::uint64_t val;
+    std::memcpy(&val, ptr_, sizeof(val));
+    ptr_ += sizeof(val);
+    return val;
+  }
+  float readFloat()
+  {
+    float val;
+    std::memcpy(&val, ptr_, sizeof(val));
+    ptr_ += sizeof(val);
+    return val;
+  }
+  void readBytes(char *dest,
+                 size_t len)
+  {
+    std::memcpy(dest, ptr_, len);
+    ptr_ += len;
+  }
 
-    inline std::uint32_t readU32() {
-        // Values are stored little-endian, the native byte order of the
-        // hosts this reader supports.
-        std::uint32_t val;
-        std::memcpy(&val, ptr_, 4); // memcpy is optimized away by compiler to a simple mov
-        ptr_ += 4;
-        return val;
-    }
+  void seek(size_t offset) { ptr_ = start_ + offset; }
+  void setPtr(const char *ptr) { ptr_ = ptr; }
+  const char *current() const { return ptr_; }
+  size_t remaining() const { return ptr_ < end_ ? size_t(end_ - ptr_) : 0; }
+  bool inBounds(size_t offset) const { return offset <= size_t(end_ - start_); }
 
-    inline std::uint64_t readU64() {
-        std::uint64_t val;
-        std::memcpy(&val, ptr_, 8);
-        ptr_ += 8;
-        return val;
-    }
-
-    inline float readFloat() {
-        float val;
-        std::memcpy(&val, ptr_, 4);
-        ptr_ += 4;
-        return val;
-    }
-
-    inline void readBytes(char* dest, size_t len) {
-        std::memcpy(dest, ptr_, len);
-        ptr_ += len;
-    }
-
-    inline void seek(size_t offset) { ptr_ = start_ + offset; }
-    inline void setPtr(const char* ptr) { ptr_ = ptr; }
-
-    inline const char* current() const { return ptr_; }
-
-    inline size_t remaining() const { return ptr_ < end_ ? size_t(end_ - ptr_) : 0; }
-    inline bool inBounds(size_t offset) const { return offset <= size_t(end_ - start_); }
+private:
+  const char *ptr_;
+  const char *end_;
+  const char *start_;
 };
 
 class LibertyBinaryReader
