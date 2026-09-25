@@ -101,7 +101,7 @@ The input file is parsed but not loaded as a library. The `read_liberty` command
 Files compressed with gzip are automatically uncompressed.} \
   -arg_help {
     in_filename {The Liberty file name to read.}
-    out_filename {The binary liberty file name to write. `read_liberty` recognizes binary liberty files by their contents as well as by the .blib file extension.}
+    out_filename {The binary liberty file name to write. `read_liberty` recognizes binary liberty files by their contents.}
   }
 
 proc write_liberty_binary { args } {

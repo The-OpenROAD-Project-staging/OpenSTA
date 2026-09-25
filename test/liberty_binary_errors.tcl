@@ -7,12 +7,6 @@ proc puts_error { msg } {
   puts [string map [list "$result_dir/" ""] $msg]
 }
 
-# A text liberty file with a .blib extension is not binary liberty.
-set fake_blib [make_result_file liberty_binary_errors_text.blib]
-file copy -force liberty_float_as_str.lib $fake_blib
-catch { read_liberty $fake_blib } result
-puts_error $result
-
 # A truncated .blib is rejected rather than partially loaded.
 set blib_file [make_result_file liberty_binary_errors.blib]
 write_liberty_binary liberty_float_as_str.lib $blib_file

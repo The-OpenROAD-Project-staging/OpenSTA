@@ -75,8 +75,7 @@ scaleFloats(FloatSeq &floats,
             float scale,
             size_t first = 0);
 
-// Binary liberty files start with LIBERTY_BINARY_MAGIC. Checked in addition
-// to the .blib extension so a renamed file is still read as binary.
+// Binary liberty files start with LIBERTY_BINARY_MAGIC.
 static bool
 isLibertyBinaryFile(std::string_view filename)
 {
@@ -93,7 +92,7 @@ readLibertyFile(std::string_view filename,
                 Network *network)
 {
   LibertyReader reader(filename, infer_latches, network);
-  if (filename.ends_with(".blib") || isLibertyBinaryFile(filename)) {
+  if (isLibertyBinaryFile(filename)) {
     std::ifstream stream(std::string(filename), std::ios::binary);
     if (!stream)
       throw FileNotReadable(filename);
