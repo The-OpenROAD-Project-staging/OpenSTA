@@ -10,5 +10,5 @@ Error: 164 liberty_binary_errors_truncated.lib line 22, syntax error
 partial output left behind: 0
 Error: 1899 output liberty_binary_errors_same.lib is the input liberty file.
 Error: 1899 output ./liberty_binary_errors_same.lib is the input liberty file.
-input intact: 1
+No differences found.
 Error: cannot write file /nonexistent_dir/out.blib.

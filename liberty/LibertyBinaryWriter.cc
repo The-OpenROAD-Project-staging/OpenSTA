@@ -102,19 +102,19 @@ writeLibertyBinary(const char *in_filename,
                    const char *out_filename,
                    Report *report)
 {
-  // Hash the source before creating the output so an unreadable input leaves
-  // nothing behind.
-  uint64_t source_hash;
-  if (!hashFile(in_filename, source_hash))
-    throw FileNotReadable(in_filename);
-  std::string source_path = absolutePath(in_filename);
-
   // Opening the output truncates it, so writing over the source would destroy
   // it before it is parsed. equivalent() also catches a different spelling of
   // the same path or a link to it, and is false when the output does not exist.
   std::error_code error;
   if (std::filesystem::equivalent(in_filename, out_filename, error))
     report->error(1899, "output {} is the input liberty file.", out_filename);
+
+  // Hash the source before creating the output so an unreadable input leaves
+  // nothing behind.
+  uint64_t source_hash;
+  if (!hashFile(in_filename, source_hash))
+    throw FileNotReadable(in_filename);
+  std::string source_path = absolutePath(in_filename);
 
   std::ofstream out_stream(out_filename, std::ios::binary);
   if (!out_stream)
