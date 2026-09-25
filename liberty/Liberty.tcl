@@ -124,7 +124,7 @@ proc liberty_binary_info { args } {
   set filename [file nativename [lindex $args 0]]
   lassign [liberty_binary_header_cmd $filename] version source_file source_hash
   return [dict create version $version source_file $source_file \
-            source_hash $source_hash]
+    source_hash $source_hash]
 }
 
 ################################################################
