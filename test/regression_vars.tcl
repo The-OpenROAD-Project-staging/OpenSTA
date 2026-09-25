@@ -167,6 +167,7 @@ record_public_tests {
   liberty_binary_errors
   liberty_binary_lines
   liberty_binary_scenes
+  liberty_binary_source
   liberty_binary_timing
   liberty_ccsn
   liberty_float_as_str

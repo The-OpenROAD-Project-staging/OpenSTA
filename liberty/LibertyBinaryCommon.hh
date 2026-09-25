@@ -29,12 +29,33 @@ static_assert(std::endian::native == std::endian::little,
 // Magic number for binary liberty files: "STALIB01"
 inline constexpr char LIBERTY_BINARY_MAGIC[] = "STALIB01";
 inline constexpr size_t LIBERTY_BINARY_MAGIC_SIZE = sizeof(LIBERTY_BINARY_MAGIC) - 1;
-// Bumped when the record layout changes; the reader rejects other versions.
+// File layout: magic, version, source path (u32 length + bytes), source hash
+// (u64), string table offset (u64), records, string table.
+// Bumped when the layout changes; the reader rejects other versions.
 // 1: initial layout.
 // 2: group, attribute and variable records carry the source line of the
 //    statement after the tag, as a zigzag varint delta from the previous
 //    statement's line.
-inline constexpr uint32_t LIBERTY_BINARY_VERSION = 2;
+// 3: the header records the absolute path of the source file and the FNV-1a
+//    64-bit hash of its bytes, for traceability.
+inline constexpr uint32_t LIBERTY_BINARY_VERSION = 3;
+
+// FNV-1a 64-bit hash of the source file's bytes as stored on disk (compressed
+// when it is gzipped), so a .blib can be traced to the exact file it came from.
+inline constexpr uint64_t LIBERTY_BINARY_HASH_OFFSET = 14695981039346656037ull;
+inline constexpr uint64_t LIBERTY_BINARY_HASH_PRIME = 1099511628211ull;
+
+inline uint64_t
+libertyBinaryHash(uint64_t hash,
+                  const char *bytes,
+                  size_t size)
+{
+  for (size_t i = 0; i < size; i++) {
+    hash ^= static_cast<unsigned char>(bytes[i]);
+    hash *= LIBERTY_BINARY_HASH_PRIME;
+  }
+  return hash;
+}
 
 // Zigzag mapping so the (rare) negative line delta also encodes compactly.
 inline constexpr uint32_t

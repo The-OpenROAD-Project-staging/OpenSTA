@@ -24,7 +24,9 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <string>
 #include <vector>
 
 namespace {
@@ -72,6 +74,33 @@ isFloatSeqAttr(const std::string &name)
     || name.starts_with("index_");
 }
 
+// Hash of the source file's bytes as stored on disk; false if it cannot be read.
+bool
+hashFile(const char *filename,
+         uint64_t &hash)
+{
+  std::ifstream stream(filename, std::ios::binary);
+  if (!stream)
+    return false;
+  hash = sta::LIBERTY_BINARY_HASH_OFFSET;
+  char buffer[64 * 1024];
+  while (stream.read(buffer, sizeof(buffer)) || stream.gcount() > 0)
+    hash = sta::libertyBinaryHash(hash, buffer, stream.gcount());
+  return true;
+}
+
+// The path recorded in the header: absolute, so it still identifies the
+// source when the .blib is read from another directory.
+std::string
+absolutePath(const char *filename)
+{
+  std::error_code error;
+  std::filesystem::path path = std::filesystem::absolute(filename, error);
+  if (error)
+    return filename;
+  return path.lexically_normal().string();
+}
+
 } // namespace
 
 namespace sta {
@@ -81,6 +110,13 @@ writeLibertyBinary(const char *in_filename,
                    const char *out_filename,
                    Report *report)
 {
+  // Hash the source before creating the output so an unreadable input leaves
+  // nothing behind.
+  uint64_t source_hash;
+  if (!hashFile(in_filename, source_hash))
+    throw FileNotReadable(in_filename);
+  std::string source_path = absolutePath(in_filename);
+
   std::ofstream out_stream(out_filename, std::ios::binary);
   if (!out_stream)
     throw FileNotWritable(out_filename);
@@ -88,9 +124,14 @@ writeLibertyBinary(const char *in_filename,
   try {
     LibertyBinaryWriter writer(&out_stream);
     // Write Magic and Version.
-    out_stream.write(LIBERTY_BINARY_MAGIC, 8);
+    out_stream.write(LIBERTY_BINARY_MAGIC, LIBERTY_BINARY_MAGIC_SIZE);
     uint32_t version = LIBERTY_BINARY_VERSION;
     writeRaw(&out_stream, version);
+    // Source file and its hash, for traceability.
+    uint32_t source_path_length = source_path.size();
+    writeRaw(&out_stream, source_path_length);
+    out_stream.write(source_path.data(), source_path.size());
+    writeRaw(&out_stream, source_hash);
     uint64_t string_table_offset = 0;
     uint64_t string_table_offset_location = out_stream.tellp();
     writeRaw(&out_stream, string_table_offset);

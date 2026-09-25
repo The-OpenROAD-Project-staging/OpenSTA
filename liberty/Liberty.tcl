@@ -111,6 +111,22 @@ proc write_liberty_binary { args } {
   write_liberty_binary_cmd $in_filename $out_filename
 }
 
+define_cmd_args "liberty_binary_info" {filename} \
+  -help {Report where a binary liberty (.blib) file came from.
+
+Returns a dict with the format `version`, the absolute path of the Liberty file the .blib was written from (`source_file`) and the FNV-1a 64-bit hash of that file's bytes as stored on disk, as 16 hex digits (`source_hash`).} \
+  -arg_help {
+    filename {The binary liberty file name.}
+  }
+
+proc liberty_binary_info { args } {
+  check_argc_eq1 "liberty_binary_info" $args
+  set filename [file nativename [lindex $args 0]]
+  lassign [liberty_binary_header_cmd $filename] version source_file source_hash
+  return [dict create version $version source_file $source_file \
+            source_hash $source_hash]
+}
+
 ################################################################
 
 define_cmd_args "report_lib_cell" {cell_name [> filename] [>> filename]} \

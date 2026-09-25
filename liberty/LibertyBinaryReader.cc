@@ -18,8 +18,10 @@
 #include "LibertyBinaryCommon.hh"
 #include "LibertyParser.hh"
 #include "Report.hh"
+#include "sta/Error.hh"
 
 #include <cstring>
+#include <fstream>
 #include <istream>
 #include <memory>
 #include <string_view>
@@ -27,8 +29,13 @@
 
 namespace sta {
 
-// Header is magic(8) + version(4) + string table offset(8).
-static constexpr size_t header_size = 20;
+// Header is magic(8) + version(4) + source path length(4) + source path
+// + source hash(8) + string table offset(8).
+static constexpr size_t min_header_size = 32;
+// The fields after the source path length, not counting the path itself.
+static constexpr size_t header_tail_size = 16;
+// readLibertyBinaryHeader reads this much of the file, enough for any path.
+static constexpr size_t header_prefix_size = 64 * 1024;
 // A string table entry is at least length(4) + index(4).
 static constexpr size_t min_string_entry_size = 8;
 // The smallest encoded value is a type byte + 4 bytes of payload.
@@ -45,18 +52,25 @@ LibertyBinaryReader::LibertyBinaryReader(LibertyGroupVisitor *visitor,
 void
 LibertyBinaryReader::corruptError()
 {
-  parser_.report()->error(1900, "{} is not a valid binary liberty file.",
-                          parser_.filename());
+  corruptError(parser_.filename(), parser_.report());
 }
 
 void
-LibertyBinaryReader::versionError(std::uint32_t version)
+LibertyBinaryReader::corruptError(std::string_view filename,
+                                  Report *report)
 {
-  parser_.report()->error(1902,
-                          "{} is binary liberty version {}; this build reads "
-                          "version {}. Regenerate it with "
-                          "write_liberty_binary.",
-                          parser_.filename(), version, LIBERTY_BINARY_VERSION);
+  report->error(1900, "{} is not a valid binary liberty file.", filename);
+}
+
+void
+LibertyBinaryReader::versionError(std::string_view filename,
+                                  Report *report,
+                                  std::uint32_t version)
+{
+  report->error(1902,
+                "{} is binary liberty version {}; this build reads version {}. "
+                "Regenerate it with write_liberty_binary.",
+                filename, version, LIBERTY_BINARY_VERSION);
 }
 
 void
@@ -72,7 +86,7 @@ LibertyBinaryReader::read(std::istream *stream)
   stream->seekg(0, std::ios::end);
   std::streamoff stream_size = stream->tellg();
   // A negative size covers tellg() failure on an unseekable stream.
-  if (stream_size < static_cast<std::streamoff>(header_size))
+  if (stream_size < static_cast<std::streamoff>(min_header_size))
     corruptError();
   stream->seekg(0, std::ios::beg);
 
@@ -86,20 +100,13 @@ LibertyBinaryReader::read(std::istream *stream)
 
   cursor_ = BinaryCursor(buffer.get(), size);
 
-  char magic[LIBERTY_BINARY_MAGIC_SIZE];
-  cursor_.readBytes(magic, LIBERTY_BINARY_MAGIC_SIZE);
-  std::string_view magic_view(magic, LIBERTY_BINARY_MAGIC_SIZE);
-  if (magic_view != LIBERTY_BINARY_MAGIC)
-    corruptError();
+  LibertyBinaryHeader header;
+  std::uint64_t string_table_offset =
+    readHeader(cursor_, header, parser_.filename(), parser_.report());
 
-  std::uint32_t version = cursor_.readU32();
-  if (version != LIBERTY_BINARY_VERSION)
-    versionError(version);
-  std::uint64_t string_table_offset = cursor_.readU64();
-
-  // Reject offsets outside the file or inside the header (e.g. the header-only
-  // stub a failed write leaves behind) rather than reading out of bounds.
-  if (string_table_offset < header_size
+  // Reject offsets outside the file or inside the header rather than reading
+  // out of bounds.
+  if (string_table_offset < cursor_.offset()
       || !cursor_.inBounds(string_table_offset))
     corruptError();
 
@@ -109,6 +116,49 @@ LibertyBinaryReader::read(std::istream *stream)
   cursor_.setPtr(body_start);
 
   readStatements(/*top_level=*/true);
+}
+
+std::uint64_t
+LibertyBinaryReader::readHeader(BinaryCursor &cursor,
+                                LibertyBinaryHeader &header,
+                                std::string_view filename,
+                                Report *report)
+{
+  if (cursor.remaining() < min_header_size)
+    corruptError(filename, report);
+
+  char magic[LIBERTY_BINARY_MAGIC_SIZE];
+  cursor.readBytes(magic, LIBERTY_BINARY_MAGIC_SIZE);
+  std::string_view magic_view(magic, LIBERTY_BINARY_MAGIC_SIZE);
+  if (magic_view != LIBERTY_BINARY_MAGIC)
+    corruptError(filename, report);
+
+  header.version = cursor.readU32();
+  if (header.version != LIBERTY_BINARY_VERSION)
+    versionError(filename, report, header.version);
+
+  std::uint32_t path_length = cursor.readU32();
+  if (cursor.remaining() < static_cast<size_t>(path_length) + header_tail_size)
+    corruptError(filename, report);
+  header.source_filename.assign(cursor.current(), path_length);
+  cursor.setPtr(cursor.current() + path_length);
+  header.source_hash = cursor.readU64();
+  return cursor.readU64();
+}
+
+LibertyBinaryHeader
+readLibertyBinaryHeader(const char *filename,
+                        Report *report)
+{
+  std::ifstream stream(filename, std::ios::binary);
+  if (!stream)
+    throw FileNotReadable(filename);
+  std::vector<char> buffer(header_prefix_size);
+  stream.read(buffer.data(), buffer.size());
+  BinaryCursor cursor(buffer.data(), stream.gcount());
+  LibertyBinaryHeader header;
+  LibertyBinaryReader::readHeader(cursor, header, filename, report);
+  return header;
 }
 
 void

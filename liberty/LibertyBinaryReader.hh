@@ -74,6 +74,7 @@ public:
   void seek(size_t offset) { ptr_ = start_ + offset; }
   void setPtr(const char *ptr) { ptr_ = ptr; }
   const char *current() const { return ptr_; }
+  size_t offset() const { return size_t(ptr_ - start_); }
   size_t remaining() const { return ptr_ < end_ ? size_t(end_ - ptr_) : 0; }
   bool inBounds(size_t offset) const { return offset <= size_t(end_ - start_); }
 
@@ -82,6 +83,20 @@ private:
   const char *end_;
   const char *start_;
 };
+
+// Header fields recorded by write_liberty_binary for traceability.
+struct LibertyBinaryHeader
+{
+  std::uint32_t version;
+  std::string source_filename;
+  std::uint64_t source_hash;
+};
+
+// Reads only the header. Errors like read_liberty on a file that is not
+// binary liberty or is another format version.
+LibertyBinaryHeader
+readLibertyBinaryHeader(const char *filename,
+                        Report *report);
 
 class LibertyBinaryReader
 {
@@ -93,6 +108,12 @@ public:
 
   // Errors on a malformed file rather than returning.
   void read(std::istream *stream);
+  // Parses the header at the cursor and returns the string table offset.
+  // Errors on a bad magic, another version or a truncated header.
+  static std::uint64_t readHeader(BinaryCursor &cursor,
+                                  LibertyBinaryHeader &header,
+                                  std::string_view filename,
+                                  Report *report);
 
 private:
   // Walk the binary stream, driving the parser's builder methods so the
@@ -123,7 +144,11 @@ private:
   void require(size_t bytes);
   // Report::error throws, so these do not return.
   void corruptError();
-  void versionError(std::uint32_t version);
+  static void corruptError(std::string_view filename,
+                           Report *report);
+  static void versionError(std::string_view filename,
+                           Report *report,
+                           std::uint32_t version);
 
   LibertyParser parser_;
   BinaryCursor cursor_;

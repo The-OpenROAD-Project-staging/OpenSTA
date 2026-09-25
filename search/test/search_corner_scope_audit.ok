@@ -38,6 +38,7 @@ corner-neutral commands:
   get_timing_edges
   help
   include
+  liberty_binary_info
   link_design
   log_begin
   log_end
