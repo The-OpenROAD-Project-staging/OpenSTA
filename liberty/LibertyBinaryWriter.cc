@@ -109,6 +109,13 @@ writeLibertyBinary(const char *in_filename,
     throw FileNotReadable(in_filename);
   std::string source_path = absolutePath(in_filename);
 
+  // Opening the output truncates it, so writing over the source would destroy
+  // it before it is parsed. equivalent() also catches a different spelling of
+  // the same path or a link to it, and is false when the output does not exist.
+  std::error_code error;
+  if (std::filesystem::equivalent(in_filename, out_filename, error))
+    report->error(1899, "output {} is the input liberty file.", out_filename);
+
   std::ofstream out_stream(out_filename, std::ios::binary);
   if (!out_stream)
     throw FileNotWritable(out_filename);

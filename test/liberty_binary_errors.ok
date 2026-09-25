@@ -7,4 +7,7 @@ Error: cannot read file does_not_exist.lib.
 partial output left behind: 0
 Error: 164 liberty_binary_errors_truncated.lib line 22, syntax error
 partial output left behind: 0
+Error: 1899 output liberty_binary_errors_same.lib is the input liberty file.
+Error: 1899 output ./liberty_binary_errors_same.lib is the input liberty file.
+input intact: 1
 Error: cannot write file /nonexistent_dir/out.blib.

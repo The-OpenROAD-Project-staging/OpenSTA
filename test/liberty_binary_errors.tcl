@@ -55,6 +55,18 @@ catch { write_liberty_binary $bad_lib $out_file } result
 puts_error $result
 puts "partial output left behind: [file exists $out_file]"
 
+# Writing over the input is refused, since opening the output would truncate
+# the input before it is parsed. Another spelling of the same path is caught.
+set same_lib [make_result_file liberty_binary_errors_same.lib]
+file copy -force liberty_float_as_str.lib $same_lib
+set same_size [file size $same_lib]
+catch { write_liberty_binary $same_lib $same_lib } result
+puts_error $result
+catch { write_liberty_binary $same_lib \
+          [file join $result_dir . liberty_binary_errors_same.lib] } result
+puts_error $result
+puts "input intact: [expr { [file size $same_lib] == $same_size }]"
+
 # An unwritable output path is reported.
 catch { write_liberty_binary liberty_float_as_str.lib /nonexistent_dir/out.blib } result
 puts_error $result
