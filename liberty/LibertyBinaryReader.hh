@@ -104,7 +104,7 @@ public:
   LibertyBinaryReader(LibertyGroupVisitor *visitor,
                       std::string_view filename,
                       Report *report);
-  ~LibertyBinaryReader() = default;
+  ~LibertyBinaryReader();
 
   // Errors on a malformed file rather than returning.
   void read(std::istream *stream);

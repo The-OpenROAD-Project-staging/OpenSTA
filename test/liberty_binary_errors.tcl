@@ -34,6 +34,23 @@ close $stream
 catch { read_liberty $old_blib } result
 puts_error $result
 
+# A corrupt record inside the library (its end tag) is rejected.
+set body_blib [make_result_file liberty_binary_errors_body.blib]
+write_liberty_binary liberty_float_as_str.lib $body_blib
+set stream [open $body_blib r+]
+fconfigure $stream -translation binary
+# The header ends with the string table offset, after the source path. The
+# library's end tag and the EOF tag come just before the string table.
+seek $stream 12
+binary scan [read $stream 4] iu path_length
+seek $stream [expr { 24 + $path_length }]
+binary scan [read $stream 8] wu string_table_offset
+seek $stream [expr { $string_table_offset - 2 }]
+puts -nonewline $stream [binary format c 255]
+close $stream
+catch { read_liberty $body_blib } result
+puts_error $result
+
 # A missing .blib reports the file, not a corrupt file.
 catch { read_liberty [make_result_file does_not_exist.blib] } result
 puts_error $result

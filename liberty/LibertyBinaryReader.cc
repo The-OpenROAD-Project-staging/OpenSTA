@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #include "LibertyBinaryReader.hh"
+#include "ContainerHelpers.hh"
 #include "LibertyBinaryCommon.hh"
 #include "LibertyParser.hh"
 #include "Report.hh"
@@ -47,6 +48,13 @@ LibertyBinaryReader::LibertyBinaryReader(LibertyGroupVisitor *visitor,
   parser_(filename, visitor, report),
   cursor_(nullptr, 0)
 {
+}
+
+// A malformed file errors out of read() with groups still open, and the
+// parser does not free them. After a complete read none are open.
+LibertyBinaryReader::~LibertyBinaryReader()
+{
+  parser_.deleteGroups();
 }
 
 void
@@ -267,8 +275,16 @@ LibertyBinaryReader::readValues()
 
   LibertyAttrValueSeq *values = new LibertyAttrValueSeq;
   values->reserve(count);
-  for (std::uint32_t i = 0; i < count; i++)
-    values->push_back(readValue());
+  try {
+    for (std::uint32_t i = 0; i < count; i++)
+      values->push_back(readValue());
+  }
+  catch (...) {
+    // A corrupt value errors before the caller takes ownership of the list.
+    deleteContents(values);
+    delete values;
+    throw;
+  }
   return values;
 }
 
