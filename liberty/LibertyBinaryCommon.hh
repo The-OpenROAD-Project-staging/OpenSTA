@@ -16,10 +16,15 @@
 
 #pragma once
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
 namespace sta {
+
+// Multi-byte values are written and read in the host's byte order.
+static_assert(std::endian::native == std::endian::little,
+              "binary liberty format assumes a little-endian host");
 
 // Magic number for binary liberty files: "STALIB01"
 inline constexpr char LIBERTY_BINARY_MAGIC[] = "STALIB01";

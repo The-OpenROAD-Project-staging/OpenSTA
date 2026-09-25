@@ -41,8 +41,8 @@ public:
   }
 
   std::uint8_t readU8() { return static_cast<std::uint8_t>(*ptr_++); }
-  // Multi-byte values are stored little-endian, the native byte order of
-  // the hosts this reader supports, so the memcpy is a plain load.
+  // Multi-byte values are in the host's byte order (LibertyBinaryCommon.hh
+  // asserts it is little-endian), so the memcpy is a plain load.
   std::uint32_t readU32()
   {
     std::uint32_t val;
