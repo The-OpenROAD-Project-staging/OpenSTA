@@ -18,12 +18,11 @@
 #include "LibertyBinaryCommon.hh"
 #include "LibertyParser.hh"
 #include "Report.hh"
+#include "StringUtil.hh"
 #include "sta/Error.hh"
 
-#include <cctype>
 #include <cstdio>
 #include <cstdint>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -42,24 +41,17 @@ writeRaw(std::ostream *stream,
 }
 
 // Liberty stores numeric index/value sequences as quoted, comma separated
-// strings.  Recognize those so they can be stored as native floats.
+// strings. Match the text reader's tokenization and validation, leaving the
+// original string intact when a token is invalid so its diagnostics survive.
 bool
 parseOptimisticFloatSeq(const std::string &str, std::vector<float> &floats)
 {
   floats.clear();
-  const char *p = str.c_str();
-  char *end;
-  while (*p) {
-    while (*p && (isspace(static_cast<unsigned char>(*p)) || *p == ',' || *p == '\"'
-                  || *p == '{' || *p == '}'))
-      p++;
-    if (!*p)
-      break;
-    float f = strtof(p, &end);
-    if (p == end)
+  for (const std::string &token : sta::parseTokens(str, " ,{}")) {
+    auto [value, valid] = sta::stringFloat(token);
+    if (!valid)
       return false; // Not a float list.
-    floats.push_back(f);
-    p = end;
+    floats.push_back(value);
   }
   return !floats.empty();
 }
