@@ -329,7 +329,7 @@ filterObjects(std::string_view filter_expression,
         auto union_result = std::set<T*>();
         std::set_union(arg0.cbegin(), arg0.cend(), arg1.cbegin(), arg1.cend(),
                        std::inserter(union_result, union_result.begin()));
-        eval_stack.push(union_result);
+        eval_stack.push(std::move(union_result));
       }
       else if (token->kind() == FilterExpr::Token::Kind::op_and) {
         if (eval_stack.size() < 2) {
@@ -344,7 +344,7 @@ filterObjects(std::string_view filter_expression,
                               arg1.cbegin(), arg1.cend(),
                               std::inserter(intersection_result,
                                             intersection_result.begin()));
-        eval_stack.push(intersection_result);
+        eval_stack.push(std::move(intersection_result));
       }
       else if (token->kind() == FilterExpr::Token::Kind::op_inv) {
         if (eval_stack.size() < 1) {
@@ -358,7 +358,7 @@ filterObjects(std::string_view filter_expression,
                             arg0.cbegin(), arg0.cend(),
                             std::inserter(difference_result,
                                           difference_result.begin()));
-        eval_stack.push(difference_result);
+        eval_stack.push(std::move(difference_result));
       }
       else if (token->kind() == FilterExpr::Token::Kind::defined
                || token->kind() == FilterExpr::Token::Kind::undefined) {
@@ -408,7 +408,7 @@ filterObjects(std::string_view filter_expression,
             result.insert(object);
           }
         }
-        eval_stack.push(result);
+        eval_stack.push(std::move(result));
       }
       else if (token->kind() == FilterExpr::Token::Kind::predicate) {
         auto *predicate_token =
@@ -417,7 +417,7 @@ filterObjects(std::string_view filter_expression,
                                        predicate_token->op(),
                                        predicate_token->arg(),
                                        all, sta);
-        eval_stack.push(result);
+        eval_stack.push(std::move(result));
       }
     }
     if (eval_stack.empty())
@@ -425,7 +425,7 @@ filterObjects(std::string_view filter_expression,
     if (eval_stack.size() > 1)
       // huh?
       report->error(2608, "-filter expression evaluated to multiple sets.");
-    const std::set<T*>& result_set = eval_stack.top();
+    const std::set<T*> &result_set = eval_stack.top();
     result.resize(result_set.size());
     std::copy(result_set.begin(), result_set.end(), result.begin());
     sort(result, [object_less] (T *obj1, T *obj2) {
