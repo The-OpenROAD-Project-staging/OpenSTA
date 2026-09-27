@@ -322,9 +322,9 @@ filterObjects(std::string_view filter_expression,
       if (token->kind() == FilterExpr::Token::Kind::op_or) {
         if (eval_stack.size() < 2)
           report->error(2604, "-filter logical OR requires at least two operands.");
-        auto arg0 = eval_stack.top();
+        std::set<T*> arg0 = std::move(eval_stack.top());
         eval_stack.pop();
-        auto arg1 = eval_stack.top();
+        std::set<T*> arg1 = std::move(eval_stack.top());
         eval_stack.pop();
         auto union_result = std::set<T*>();
         std::set_union(arg0.cbegin(), arg0.cend(), arg1.cbegin(), arg1.cend(),
@@ -335,9 +335,9 @@ filterObjects(std::string_view filter_expression,
         if (eval_stack.size() < 2) {
           report->error(2605, "-filter logical AND requires two operands.");
         }
-        auto arg0 = eval_stack.top();
+        std::set<T*> arg0 = std::move(eval_stack.top());
         eval_stack.pop();
-        auto arg1 = eval_stack.top();
+        std::set<T*> arg1 = std::move(eval_stack.top());
         eval_stack.pop();
         auto intersection_result = std::set<T*>();
         std::set_intersection(arg0.cbegin(), arg0.cend(),
@@ -350,7 +350,7 @@ filterObjects(std::string_view filter_expression,
         if (eval_stack.size() < 1) {
           report->error(2606, "-filter NOT missing operand.");
         }
-        auto arg0 = eval_stack.top();
+        std::set<T*> arg0 = std::move(eval_stack.top());
         eval_stack.pop();
         
         auto difference_result = std::set<T*>();
@@ -425,7 +425,7 @@ filterObjects(std::string_view filter_expression,
     if (eval_stack.size() > 1)
       // huh?
       report->error(2608, "-filter expression evaluated to multiple sets.");
-    auto result_set = eval_stack.top();
+    const std::set<T*>& result_set = eval_stack.top();
     result.resize(result_set.size());
     std::copy(result_set.begin(), result_set.end(), result.begin());
     sort(result, [object_less] (T *obj1, T *obj2) {
