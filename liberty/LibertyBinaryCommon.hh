@@ -16,15 +16,16 @@ static_assert(std::endian::native == std::endian::little,
 // Magic number for binary liberty files: "STALIB01"
 inline constexpr char LIBERTY_BINARY_MAGIC[] = "STALIB01";
 inline constexpr size_t LIBERTY_BINARY_MAGIC_SIZE = sizeof(LIBERTY_BINARY_MAGIC) - 1;
-// File layout: magic, version, source path (u32 length + bytes), source hash
+// File layout: magic, version, source filename (u32 length + bytes), source hash
 // (u64), string table offset (u64), records, string table.
 // Bumped when the layout changes; the reader rejects other versions.
 // 1: initial layout.
 // 2: group, attribute and variable records carry the source line of the
 //    statement after the tag, as a zigzag varint delta from the previous
 //    statement's line.
-// 3: the header records the absolute path of the source file and the FNV-1a
-//    64-bit hash of its bytes, for traceability.
+// 3: the header records the source filename and the FNV-1a 64-bit hash of its
+//    bytes, for traceability. Older writers stored an absolute path; new writers
+//    store only the basename. The field encoding is unchanged.
 inline constexpr uint32_t LIBERTY_BINARY_VERSION = 3;
 
 // FNV-1a 64-bit hash of the source file's bytes as stored on disk (compressed

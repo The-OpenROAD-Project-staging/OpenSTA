@@ -114,7 +114,9 @@ proc write_liberty_binary { args } {
 define_cmd_args "liberty_binary_info" {filename} \
   -help {Report where a binary liberty (.blib) file came from.
 
-Returns a dict with the format `version`, the absolute path of the Liberty file the .blib was written from (`source_file`) and the FNV-1a 64-bit hash of that file's bytes as stored on disk, as 16 hex digits (`source_hash`).} \
+Returns a dict with the format `version`, the recorded source filename (`source_file`) and the FNV-1a 64-bit hash of that file's bytes as stored on disk, as 16 hex digits (`source_hash`).
+
+New files store only the source basename, without directory components, for reproducible output across checkouts. Older files may contain an absolute source path.} \
   -arg_help {
     filename {The binary liberty file name.}
   }

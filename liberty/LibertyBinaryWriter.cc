@@ -68,22 +68,6 @@ hashFile(const char *filename,
   return true;
 }
 
-// The path recorded in the header: absolute, so it still identifies the
-// source when the .blib is read from another directory.
-std::string
-absolutePath(const char *filename)
-{
-  std::error_code error;
-  // Resolve symlinks before collapsing "..", which otherwise may change the
-  // file named by a path such as link_to_directory/../source.lib.
-  std::filesystem::path path = std::filesystem::canonical(filename, error);
-  if (error)
-    path = std::filesystem::absolute(filename, error);
-  if (error)
-    return filename;
-  return path.string();
-}
-
 } // namespace
 
 namespace sta {
@@ -105,7 +89,9 @@ writeLibertyBinary(const char *in_filename,
   uint64_t source_hash;
   if (!hashFile(in_filename, source_hash))
     throw FileNotReadable(in_filename);
-  std::string source_path = absolutePath(in_filename);
+  // Keep directory paths out of the metadata for reproducible, shareable files.
+  std::string source_filename =
+    std::filesystem::path(in_filename).filename().string();
 
   std::ofstream out_stream(out_filename, std::ios::binary);
   if (!out_stream)
@@ -118,9 +104,9 @@ writeLibertyBinary(const char *in_filename,
     uint32_t version = LIBERTY_BINARY_VERSION;
     writeRaw(&out_stream, version);
     // Source file and its hash, for traceability.
-    uint32_t source_path_length = source_path.size();
-    writeRaw(&out_stream, source_path_length);
-    out_stream.write(source_path.data(), source_path.size());
+    uint32_t source_filename_length = source_filename.size();
+    writeRaw(&out_stream, source_filename_length);
+    out_stream.write(source_filename.data(), source_filename.size());
     writeRaw(&out_stream, source_hash);
     uint64_t string_table_offset = 0;
     uint64_t string_table_offset_location = out_stream.tellp();
