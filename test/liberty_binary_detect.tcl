@@ -19,8 +19,11 @@ set source_text [read $stream]
 close $stream
 foreach {format transport} {
   text_gzip file
+  binary_gzip file
   text fifo
   text_gzip fifo
+  binary fifo
+  binary_gzip fifo
 } {
   set lib_name liberty_binary_detect_${format}_${transport}
   set source_file [make_result_file ${lib_name}.lib]
@@ -28,6 +31,10 @@ foreach {format transport} {
   puts -nonewline $stream [string map [list liberty_float_as_str $lib_name] $source_text]
   close $stream
   set input_file $source_file
+  if { [string match binary* $format] } {
+    set input_file [make_result_file ${lib_name}.blib]
+    write_liberty_binary $source_file $input_file
+  }
   if { [string match *_gzip $format] } {
     set stream [open $input_file rb]
     set compressed [zlib gzip [read $stream]]
@@ -37,6 +44,11 @@ foreach {format transport} {
     set stream [open $compressed_file wb]
     puts -nonewline $stream $compressed
     close $stream
+    if { [string match binary* $format] } {
+      if { [liberty_binary_info $compressed_file] ne [liberty_binary_info $input_file] } {
+        error "compressed binary header differs"
+      }
+    }
     set input_file $compressed_file
   }
   if { $transport eq "fifo" } {

@@ -8,5 +8,8 @@
 cells: 1
 text cells: 1
 text_gzip file cells: 1
+binary_gzip file cells: 1
 text fifo cells: 1
 text_gzip fifo cells: 1
+binary fifo cells: 1
+binary_gzip fifo cells: 1

@@ -9,11 +9,11 @@
 #include "sta/Error.hh"
 
 #include <cstring>
-#include <fstream>
 #include <istream>
-#include <memory>
 #include <string_view>
 #include <vector>
+
+#include "util/gzstream.hh"
 
 namespace sta {
 
@@ -78,22 +78,15 @@ LibertyBinaryReader::require(size_t bytes)
 void
 LibertyBinaryReader::read(std::istream *stream)
 {
-  stream->seekg(0, std::ios::end);
-  std::streamoff stream_size = stream->tellg();
-  // A negative size covers tellg() failure on an unseekable stream.
-  if (stream_size < static_cast<std::streamoff>(min_header_size))
-    corruptError();
-  stream->seekg(0, std::ios::beg);
-
-  size_t size = stream_size;
-  // Uninitialized; read() fills it and the short-read check below rejects
-  // anything less, so no zero fill pass over the buffer is needed.
-  std::unique_ptr<char[]> buffer(new char[size]);
-  stream->read(buffer.get(), size);
-  if (static_cast<size_t>(stream->gcount()) != size)
+  // Read sequentially so compressed files and pipes need no seeking.
+  std::vector<char> buffer;
+  char chunk[64 * 1024];
+  while (stream->read(chunk, sizeof(chunk)) || stream->gcount() > 0)
+    buffer.insert(buffer.end(), chunk, chunk + stream->gcount());
+  if (stream->bad() || !stream->eof() || buffer.size() < min_header_size)
     corruptError();
 
-  cursor_ = BinaryCursor(buffer.get(), size);
+  cursor_ = BinaryCursor(buffer.data(), buffer.size());
 
   LibertyBinaryHeader header;
   std::uint64_t string_table_offset =
@@ -145,8 +138,8 @@ LibertyBinaryHeader
 readLibertyBinaryHeader(const char *filename,
                         Report *report)
 {
-  std::ifstream stream(filename, std::ios::binary);
-  if (!stream)
+  gzstream::igzstream stream(filename);
+  if (!stream.is_open())
     throw FileNotReadable(filename);
   std::vector<char> buffer(header_prefix_size);
   stream.read(buffer.data(), buffer.size());

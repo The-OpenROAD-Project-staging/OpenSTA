@@ -30,7 +30,6 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <functional>
 #include <memory>
 #include <set>
@@ -144,12 +143,9 @@ LibertyReader::readLibertyFile(std::string_view filename)
   LibertyInputStreambuf buffer(magic, prefix_size, source.rdbuf());
   std::istream stream(&buffer);
   if (std::string_view(magic, prefix_size) == LIBERTY_BINARY_MAGIC) {
-    std::ifstream binary_stream(fn, std::ios::binary);
-    if (!binary_stream)
-      throw FileNotReadable(filename);
     LibertyBinaryReader bin_reader(this, filename, report_);
     // Errors on a malformed file.
-    bin_reader.read(&binary_stream);
+    bin_reader.read(&stream);
   }
   else
     parseLibertyStream(&stream, filename, this, report_);
