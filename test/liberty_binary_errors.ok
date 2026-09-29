@@ -6,6 +6,9 @@ Error: 1900 liberty_binary_errors_early_eof.blib is not a valid binary liberty f
 Error: 1900 liberty_binary_errors_trailing.blib is not a valid binary liberty file.
 Error: 1900 liberty_binary_errors_missing_eof.blib is not a valid binary liberty file.
 Error: 1900 liberty_binary_errors_empty_body.blib is not a valid binary liberty file.
+Error: 1900 liberty_binary_errors_depth_1001.blib is not a valid binary liberty file.
+Error: 1900 liberty_binary_errors_depth_100000.blib is not a valid binary liberty file.
+nesting limit cells: 1
 Error: cannot read file does_not_exist.blib.
 Error: cannot read file does_not_exist.lib.
 partial output left behind: 0

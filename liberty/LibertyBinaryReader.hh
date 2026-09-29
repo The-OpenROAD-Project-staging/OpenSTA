@@ -139,6 +139,8 @@ private:
   LibertyParser parser_;
   BinaryCursor cursor_;
   std::vector<std::string> string_table_;
+  // Nesting depth of the group being read.
+  int group_depth_ = 0;
   // Line of the previous statement; statement lines are stored as deltas.
   int last_line_ = 0;
 };

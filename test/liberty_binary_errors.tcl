@@ -101,6 +101,55 @@ foreach corruption {early_eof trailing missing_eof empty_body} {
   puts_error $result
 }
 
+# Bound recursive decoding even when every nested record is well-formed.
+# Test one level beyond the limit, a former stack-overflow case, and two
+# sibling chains at the limit to check that depth decreases on group exit.
+foreach depth {1001 100000 1000} {
+  set stem liberty_binary_errors_depth_$depth
+  set source_file [make_result_file ${stem}.lib]
+  set stream [open $source_file wb]
+  puts -nonewline $stream [string map [list liberty_float_as_str $stem] $source_text]
+  close $stream
+  set depth_blib [make_result_file ${stem}.blib]
+  write_liberty_binary $source_file $depth_blib
+  set stream [open $depth_blib rb]
+  set bytes [read $stream]
+  close $stream
+  binary scan [string range $bytes 12 15] iu path_length
+  set offset_location [expr { 24 + $path_length }]
+  binary scan [string range $bytes $offset_location [expr { $offset_location + 7 }]] wu table_offset
+  binary scan [string range $bytes $table_offset [expr { $table_offset + 3 }]] iu string_count
+
+  # Unknown groups are ignored by LibertyReader. Add their type to the string
+  # table and insert nested groups before the library's end tag. The library
+  # itself counts as the first nesting level.
+  set group_type ignored_depth_group
+  set group_begin [binary format ccc 1 0 1]
+  append group_begin [binary format iu $string_count] [binary format iu 0]
+  set nested [string repeat $group_begin [expr { $depth - 1 }]]
+  append nested [string repeat [binary format c 2] [expr { $depth - 1 }]]
+  if { $depth == 1000 } { append nested $nested }
+  set insert_offset [expr { $table_offset - 2 }]
+  set bytes "[string range $bytes 0 [expr { $insert_offset - 1 }]]$nested[string range $bytes $insert_offset end]"
+  incr table_offset [string length $nested]
+  set bytes [string replace $bytes $offset_location [expr { $offset_location + 7 }] [binary format wu $table_offset]]
+  set bytes [string replace $bytes $table_offset [expr { $table_offset + 3 }] [binary format iu [expr { $string_count + 1 }]]]
+  append bytes [binary format iu [string length $group_type]] $group_type [binary format iu $string_count]
+  set stream [open $depth_blib wb]
+  puts -nonewline $stream $bytes
+  close $stream
+
+  if { $depth > 1000 } {
+    if { ![catch { read_liberty $depth_blib } result] } {
+      error "nesting depth $depth was accepted"
+    }
+    puts_error $result
+  } else {
+    read_liberty $depth_blib
+    puts "nesting limit cells: [llength [get_lib_cells ${stem}/*]]"
+  }
+}
+
 # A missing .blib reports the file, not a corrupt file.
 catch { read_liberty [make_result_file does_not_exist.blib] } result
 puts_error $result

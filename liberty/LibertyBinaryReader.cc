@@ -28,6 +28,8 @@ static constexpr size_t header_prefix_size = 64 * 1024;
 static constexpr size_t min_string_entry_size = 8;
 // The smallest encoded value is a type byte + 4 bytes of payload.
 static constexpr size_t min_value_size = 5;
+// Far above normal Liberty nesting; bounds recursion for malformed input.
+static constexpr int max_group_depth = 1000;
 
 LibertyBinaryReader::LibertyBinaryReader(LibertyGroupVisitor *visitor,
                                          std::string_view filename,
@@ -185,6 +187,9 @@ LibertyBinaryReader::readStatements()
 void
 LibertyBinaryReader::readGroup()
 {
+  if (++group_depth_ > max_group_depth)
+    corruptError();
+
   int line = readLine();
   std::string type = readString();
   // groupBegin takes ownership of the params (nullptr when there are none).
@@ -194,6 +199,7 @@ LibertyBinaryReader::readGroup()
   readStatements();
 
   parser_.groupEnd();
+  group_depth_--;
 }
 
 void
