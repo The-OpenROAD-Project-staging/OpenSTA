@@ -41,7 +41,7 @@
 
 namespace sta {
 
-static void
+void
 parseLibertyStream(std::istream *stream,
                    std::string_view filename,
                    LibertyGroupVisitor *library_visitor,

@@ -25,6 +25,7 @@
 #pragma once
 
 #include <functional>
+#include <iosfwd>
 #include <string_view>
 #include <vector>
 #include <map>
@@ -281,6 +282,12 @@ public:
   virtual void visitAttr(const LibertyComplexAttr *attr) = 0;
   virtual void visitVariable(LibertyVariable *variable) = 0;
 };
+
+void
+parseLibertyStream(std::istream *stream,
+                   std::string_view filename,
+                   LibertyGroupVisitor *library_visitor,
+                   Report *report);
 
 void
 parseLibertyFile(std::string_view filename,

@@ -7,3 +7,6 @@
  distance 1um
 cells: 1
 text cells: 1
+text_gzip file cells: 1
+text fifo cells: 1
+text_gzip fifo cells: 1
