@@ -105,8 +105,7 @@ public:
 private:
   // Walk the binary stream, driving the parser's builder methods so the
   // group/attribute ownership and visitor dispatch match the text reader.
-  // Only groups are legal at the top level.
-  void readStatements(bool top_level);
+  void readStatements();
   void readGroup();
   void readSimpleAttr();
   void readComplexAttr();

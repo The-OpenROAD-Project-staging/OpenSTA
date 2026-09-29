@@ -98,12 +98,24 @@ LibertyBinaryReader::read(std::istream *stream)
       || !cursor_.inBounds(string_table_offset))
     corruptError();
 
-  const char *body_start = cursor_.current();
+  size_t body_offset = cursor_.offset();
   cursor_.seek(string_table_offset);
   readStringTable();
-  cursor_.setPtr(body_start);
+  // Records cannot consume string-table bytes, even if a terminator is missing.
+  cursor_ = BinaryCursor(buffer.data() + body_offset,
+                         string_table_offset - body_offset);
 
-  readStatements(/*top_level=*/true);
+  // The text grammar, and therefore the writer, emits exactly one root group.
+  require(1);
+  if (static_cast<LibertyBinaryTag>(cursor_.readU8())
+      != LibertyBinaryTag::GROUP_BEGIN)
+    corruptError();
+  readGroup();
+  require(1);
+  if (static_cast<LibertyBinaryTag>(cursor_.readU8())
+        != LibertyBinaryTag::EOF_TAG
+      || cursor_.remaining() != 0)
+    corruptError();
 }
 
 std::uint64_t
@@ -150,21 +162,15 @@ readLibertyBinaryHeader(const char *filename,
 }
 
 void
-LibertyBinaryReader::readStatements(bool top_level)
+LibertyBinaryReader::readStatements()
 {
-  LibertyBinaryTag terminator = top_level ? LibertyBinaryTag::EOF_TAG
-                                          : LibertyBinaryTag::GROUP_END;
   while (true) {
     require(1);
     LibertyBinaryTag tag = static_cast<LibertyBinaryTag>(cursor_.readU8());
-    if (tag == terminator)
+    if (tag == LibertyBinaryTag::GROUP_END)
       return;
     if (tag == LibertyBinaryTag::GROUP_BEGIN)
       readGroup();
-    // Attributes and variables belong to a group; at the top level (or for
-    // any unknown tag) the file is corrupt.
-    else if (top_level)
-      corruptError();
     else if (tag == LibertyBinaryTag::ATTR_SIMPLE)
       readSimpleAttr();
     else if (tag == LibertyBinaryTag::ATTR_COMPLEX)
@@ -185,7 +191,7 @@ LibertyBinaryReader::readGroup()
   LibertyAttrValueSeq *params = readValues();
   parser_.groupBegin(std::move(type), params, line);
 
-  readStatements(/*top_level=*/false);
+  readStatements();
 
   parser_.groupEnd();
 }

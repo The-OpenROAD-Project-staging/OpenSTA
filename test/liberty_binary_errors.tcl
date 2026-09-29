@@ -45,6 +45,62 @@ close $stream
 catch { read_liberty $body_blib } result
 puts_error $result
 
+# The body must contain one complete group and EOF exactly at its boundary.
+set stream [open liberty_float_as_str.lib rb]
+set source_text [read $stream]
+close $stream
+foreach corruption {early_eof trailing missing_eof empty_body} {
+  set stem liberty_binary_errors_$corruption
+  set source_file [make_result_file ${stem}.lib]
+  set stream [open $source_file wb]
+  puts -nonewline $stream [string map [list liberty_float_as_str $stem] $source_text]
+  close $stream
+  set bad_blib [make_result_file ${stem}.blib]
+  write_liberty_binary $source_file $bad_blib
+  set stream [open $bad_blib rb]
+  set bytes [read $stream]
+  close $stream
+  binary scan [string range $bytes 12 15] iu path_length
+  set offset_location [expr { 24 + $path_length }]
+  binary scan [string range $bytes $offset_location [expr { $offset_location + 7 }]] wu table_offset
+  set body_start [expr { 32 + $path_length }]
+  switch $corruption {
+    early_eof {
+      set bytes [string replace $bytes $body_start $body_start [binary format c 0]]
+    }
+    trailing {
+      set bytes "[string range $bytes 0 [expr { $table_offset - 1 }]][binary format c 255][string range $bytes $table_offset end]"
+      incr table_offset
+    }
+    missing_eof {
+      # Pad the string table to 256 entries so its first byte is zero. An
+      # unbounded reader would mistake that byte for the missing EOF tag.
+      binary scan [string range $bytes $table_offset [expr { $table_offset + 3 }]] iu count
+      if { $count > 256 } { error "fixture string table is too large" }
+      for {set i $count} {$i < 256} {incr i} {
+        set entry padding_$i
+        append bytes [binary format iu [string length $entry]] $entry [binary format iu $i]
+      }
+      set bytes [string replace $bytes $table_offset [expr { $table_offset + 3 }] [binary format iu 256]]
+      set eof_offset [expr { $table_offset - 1 }]
+      set bytes [string replace $bytes $eof_offset $eof_offset]
+      incr table_offset -1
+    }
+    empty_body {
+      set bytes [string replace $bytes $body_start [expr { $table_offset - 2 }]]
+      set table_offset [expr { $body_start + 1 }]
+    }
+  }
+  set bytes [string replace $bytes $offset_location [expr { $offset_location + 7 }] [binary format wu $table_offset]]
+  set stream [open $bad_blib wb]
+  puts -nonewline $stream $bytes
+  close $stream
+  if { ![catch { read_liberty $bad_blib } result] } {
+    error "$corruption was accepted"
+  }
+  puts_error $result
+}
+
 # A missing .blib reports the file, not a corrupt file.
 catch { read_liberty [make_result_file does_not_exist.blib] } result
 puts_error $result
