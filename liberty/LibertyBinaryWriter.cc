@@ -74,10 +74,14 @@ std::string
 absolutePath(const char *filename)
 {
   std::error_code error;
-  std::filesystem::path path = std::filesystem::absolute(filename, error);
+  // Resolve symlinks before collapsing "..", which otherwise may change the
+  // file named by a path such as link_to_directory/../source.lib.
+  std::filesystem::path path = std::filesystem::canonical(filename, error);
+  if (error)
+    path = std::filesystem::absolute(filename, error);
   if (error)
     return filename;
-  return path.lexically_normal().string();
+  return path.string();
 }
 
 } // namespace

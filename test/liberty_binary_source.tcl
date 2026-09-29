@@ -37,6 +37,19 @@ set gz_info [liberty_binary_info $gz_blib]
 puts "gzipped source file: [file tail [dict get $gz_info source_file]]"
 puts "gzipped source hash matches: [expr { [dict get $gz_info source_hash] eq [file_hash ../examples/asap7_small_ff.lib.gz] }]"
 
+# Resolve a symlink before the following ".." when recording the source path.
+set source_dir [make_result_file liberty_binary_source_path]
+file mkdir $source_dir/real/child
+file copy -force liberty_float_as_str.lib $source_dir/real/source.lib
+file delete -force $source_dir/alias
+file link -symbolic $source_dir/alias $source_dir/real/child
+set alias_blib [make_result_file liberty_binary_source_alias.blib]
+write_liberty_binary $source_dir/alias/../source.lib $alias_blib
+set alias_info [liberty_binary_info $alias_blib]
+set recorded_source [dict get $alias_info source_file]
+puts "symlink source matches: [expr { $recorded_source eq [file normalize $source_dir/real/source.lib] }]"
+puts "symlink source hash matches: [expr { [dict get $alias_info source_hash] eq [file_hash $recorded_source] }]"
+
 # Only binary liberty files have a header to report.
 catch { liberty_binary_info liberty_float_as_str.lib } result
 puts_error $result

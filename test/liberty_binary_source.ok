@@ -5,5 +5,7 @@ source file exists: 1
 source hash matches: 1
 gzipped source file: asap7_small_ff.lib.gz
 gzipped source hash matches: 1
+symlink source matches: 1
+symlink source hash matches: 1
 Error: 1900 liberty_float_as_str.lib is not a valid binary liberty file.
 Error: cannot read file does_not_exist.blib.
