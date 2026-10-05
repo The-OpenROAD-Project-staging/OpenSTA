@@ -1136,21 +1136,18 @@ TEST_F(StaDcalcTest, GraphDelayCalcIncrementalTolerance) {
   gdc->setIncrementalDelayTolerance(tol);
 }
 
-// Test MultiDrvrNet default construction and setDcalcDrvr
+// Test MultiDrvrNet default construction
 TEST_F(StaDcalcTest, MultiDrvrNetConstruct) {
   MultiDrvrNet mdn;
-  EXPECT_EQ(mdn.dcalcDrvr(), nullptr);
+  EXPECT_FALSE(mdn.loadSlewsInited());
   EXPECT_TRUE(mdn.drvrs().empty());
 }
 
-// Test MultiDrvrNet setDcalcDrvr
-TEST_F(StaDcalcTest, MultiDrvrNetSetDcalcDrvr) {
+// Test MultiDrvrNet setLoadSlewsInited
+TEST_F(StaDcalcTest, MultiDrvrNetSetLoadSlewsInited) {
   MultiDrvrNet mdn;
-  // Use a dummy vertex pointer
-  int dummy = 42;
-  Vertex *v = reinterpret_cast<Vertex*>(&dummy);
-  mdn.setDcalcDrvr(v);
-  EXPECT_EQ(mdn.dcalcDrvr(), v);
+  mdn.setLoadSlewsInited(true);
+  EXPECT_TRUE(mdn.loadSlewsInited());
 }
 
 // Test dmp_ceff_two_pole inputPortDelay
@@ -3366,13 +3363,12 @@ TEST_F(FindRootAdditionalTest, FourArgNegBracket) {
 // R9_ MultiDrvrNet set and reset
 TEST_F(StaDcalcTest, MultiDrvrNetSetReset) {
   MultiDrvrNet mdn;
-  int d1=1,d2=2;
-  mdn.setDcalcDrvr(reinterpret_cast<Vertex*>(&d1));
-  EXPECT_EQ(mdn.dcalcDrvr(), reinterpret_cast<Vertex*>(&d1));
-  mdn.setDcalcDrvr(reinterpret_cast<Vertex*>(&d2));
-  EXPECT_EQ(mdn.dcalcDrvr(), reinterpret_cast<Vertex*>(&d2));
-  mdn.setDcalcDrvr(nullptr);
-  EXPECT_EQ(mdn.dcalcDrvr(), nullptr);
+  mdn.setLoadSlewsInited(true);
+  EXPECT_TRUE(mdn.loadSlewsInited());
+  mdn.setLoadSlewsInited(false);
+  EXPECT_FALSE(mdn.loadSlewsInited());
+  mdn.setLoadSlewsInited(true);
+  EXPECT_TRUE(mdn.loadSlewsInited());
 }
 
 // R9_ All calcs copyState twice
