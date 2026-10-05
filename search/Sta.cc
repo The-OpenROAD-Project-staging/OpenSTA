@@ -247,7 +247,6 @@ void
 initSta()
 {
   initElapsedTime();
-  PortDirection::init();
   initLiberty();
   initDelayConstants();
   registerDelayCalcs();
@@ -263,7 +262,6 @@ deleteAllMemory()
     Sta::setSta(nullptr);
   }
   deleteDelayCalcs();
-  PortDirection::destroy();
   deleteLiberty();
 }
 
@@ -3734,7 +3732,7 @@ void
 Sta::findDelays()
 {
   delayCalcPreamble();
-  graph_delay_calc_->findDelays(levelize_->maxLevel());
+  graph_delay_calc_->findDelays();
 }
 
 void
