@@ -241,7 +241,15 @@ protected:
 		      const InternalPower *pwr);
   float evalDiffDuty(FuncExpr *expr,
                      LibertyPort *from_port,
+                     FuncExpr *when,  // OpenROAD fork: power activity
                      const Instance *inst);
+  // ---- OpenROAD fork: power activity (begin) ----
+  bool evalBddChangeDensity(DdNode *bdd,
+                            const Instance *inst,
+                            float &density);
+  float maxPropagatedDensity(const Pin *pin);
+  void seedFuncLessOutputActivities(BfsFwdIterator &bfs);
+  // ---- OpenROAD fork: power activity (end) ----
   LibertyPort *findLinkPort(const LibertyCell *cell,
                             const LibertyPort *scene_port);
   Pin *findLinkPin(const Instance *inst,
@@ -280,6 +288,7 @@ private:
   bool instance_powers_valid_{false};
 
   static constexpr int max_activity_passes_ = 50;
+  std::unordered_map<const Pin*, float> max_density_cache_;  // OpenROAD fork
 
   friend class PropActivityVisitor;
 };
