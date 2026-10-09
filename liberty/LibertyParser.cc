@@ -41,6 +41,7 @@
 
 namespace sta {
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 void
 parseLibertyStream(std::istream *stream,
                    std::string_view filename,
@@ -52,6 +53,7 @@ parseLibertyStream(std::istream *stream,
   LibertyParse parser(&scanner, &reader);
   parser.parse();
 }
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 void
 parseLibertyFile(std::string_view filename,
@@ -60,9 +62,12 @@ parseLibertyFile(std::string_view filename,
 {
   std::string fn(filename);
   gzstream::igzstream stream(fn.c_str());
-  if (!stream.is_open())
+  if (stream.is_open()) {
+    // OpenROAD fork: binary liberty support.
+    parseLibertyStream(&stream, filename, library_visitor, report);
+  }
+  else
     throw FileNotReadable(filename);
-  parseLibertyStream(&stream, filename, library_visitor, report);
 }
 
 LibertyParser::LibertyParser(std::string_view filename,
@@ -177,6 +182,7 @@ LibertyParser::deleteGroups()
   deleteContents(group_stack_);
 }
 
+// OpenROAD fork: binary liberty support.
 LibertySimpleAttr *
 LibertyParser::makeSimpleAttr(std::string &&name,
                               LibertyAttrValue *value,
@@ -191,6 +197,7 @@ LibertyParser::makeSimpleAttr(std::string &&name,
   return attr;
 }
 
+// OpenROAD fork: binary liberty support.
 LibertyComplexAttr *
 LibertyParser::makeComplexAttr(std::string &&name,
                                LibertyAttrValueSeq *values,
@@ -237,11 +244,13 @@ LibertyParser::makeAttrValueFloat(float value)
   return new LibertyAttrValue(value);
 }
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 LibertyAttrValue *
 LibertyParser::makeAttrValueFloatSeq(std::vector<float> &&values)
 {
   return new LibertyAttrValue(std::move(values));
 }
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 ////////////////////////////////////////////////////////////////
 
@@ -584,14 +593,17 @@ LibertyAttrValue::LibertyAttrValue(float value) :
 {
 }
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 LibertyAttrValue::LibertyAttrValue(std::vector<float> &&values) :
   float_seq_(std::move(values))
 {
 }
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 bool
 LibertyAttrValue::isFloat() const
 {
+  // OpenROAD fork: binary liberty support.
   return string_value_.empty() && float_seq_.empty();
 }
 
@@ -601,11 +613,13 @@ LibertyAttrValue::isString() const
   return !string_value_.empty();
 }
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 bool
 LibertyAttrValue::isFloatSeq() const
 {
   return !float_seq_.empty();
 }
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 std::pair<float, bool>
 LibertyAttrValue::floatValue() const

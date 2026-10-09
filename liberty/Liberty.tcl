@@ -93,6 +93,7 @@ proc write_liberty { args } {
   write_liberty_cmd $library $filename
 }
 
+# ---- OpenROAD fork: binary liberty support (begin) ----
 define_cmd_args "write_liberty_binary" {in_filename out_filename} \
   -help {Translate a Liberty format library file into a binary liberty (.blib) file.
 
@@ -128,6 +129,7 @@ proc liberty_binary_info { args } {
   return [dict create version $version source_file $source_file \
     source_hash $source_hash]
 }
+# ---- OpenROAD fork: binary liberty support (end) ----
 
 ################################################################
 

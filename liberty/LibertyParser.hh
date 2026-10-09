@@ -81,14 +81,17 @@ public:
   LibertyGroup *groupEnd();
   LibertyGroup *group();
   void deleteGroups();
+  // OpenROAD fork: binary liberty support.
   LibertySimpleAttr *makeSimpleAttr(std::string &&name,
                                     LibertyAttrValue *value,
                                     int line);
+  // OpenROAD fork: binary liberty support.
   LibertyComplexAttr *makeComplexAttr(std::string &&name,
                                      LibertyAttrValueSeq *values,
                                      int line);
   LibertyAttrValue *makeAttrValueString(std::string &&value);
   LibertyAttrValue *makeAttrValueFloat(float value);
+  // OpenROAD fork: binary liberty support.
   LibertyAttrValue *makeAttrValueFloatSeq(std::vector<float> &&values);
   LibertyVariable *makeVariable(std::string &&var,
                                 float value,
@@ -107,19 +110,21 @@ class LibertyAttrValue
 public:
   LibertyAttrValue(float value);
   LibertyAttrValue(std::string &&value);
-  LibertyAttrValue(std::vector<float> &&values);
   bool isString() const;
   bool isFloat() const;
-  bool isFloatSeq() const;
   std::pair<float, bool> floatValue() const;
-  const std::vector<float> &floatSeq() const { return float_seq_; }
   const std::string &stringValue() const { return string_value_; }
   std::string &stringValue() { return string_value_; }
+  // ---- OpenROAD fork: binary liberty support (begin) ----
+  LibertyAttrValue(std::vector<float> &&values);
+  bool isFloatSeq() const;
+  const std::vector<float> &floatSeq() const { return float_seq_; }
+  // ---- OpenROAD fork: binary liberty support (end) ----
 
 private:
-  float float_value_ = 0.0f;
+  float float_value_ = 0.0f;  // OpenROAD fork: binary liberty support.
   std::string string_value_;
-  std::vector<float> float_seq_;
+  std::vector<float> float_seq_;  // OpenROAD fork: binary liberty support.
 };
 
 // Groups are a type keyword with a set of parameters and statements
@@ -283,11 +288,13 @@ public:
   virtual void visitVariable(LibertyVariable *variable) = 0;
 };
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 void
 parseLibertyStream(std::istream *stream,
                    std::string_view filename,
                    LibertyGroupVisitor *library_visitor,
                    Report *report);
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 void
 parseLibertyFile(std::string_view filename,

@@ -133,6 +133,7 @@ write_liberty_cmd(LibertyLibrary *library,
   writeLiberty(library, filename, Sta::sta());
 }
 
+// ---- OpenROAD fork: binary liberty support (begin) ----
 void write_liberty_binary_cmd(const char *in_filename, const char *out_filename) {
   writeLibertyBinary(in_filename, out_filename, Sta::sta()->report());
 }
@@ -152,6 +153,7 @@ liberty_binary_header_cmd(const char *filename)
   fields.push_back(hash);
   return fields;
 }
+// ---- OpenROAD fork: binary liberty support (end) ----
 
 void
 make_equiv_cells(LibertyLibrary *lib)
