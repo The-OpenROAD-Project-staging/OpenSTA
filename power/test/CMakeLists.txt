@@ -7,7 +7,9 @@ sta_module_tests("power"
     saif
     saif_vcd
     vcd_detailed
-    mult32_correlation
+    activity_cases
+    mult16_correlation
+    when_scenes
 )
 
 add_subdirectory(cpp)
