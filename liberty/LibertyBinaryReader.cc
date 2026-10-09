@@ -140,7 +140,9 @@ LibertyBinaryReader::readHeader(BinaryCursor &cursor,
     versionError(filename, report, header.version);
 
   std::uint32_t path_length = cursor.readU32();
-  if (cursor.remaining() < static_cast<size_t>(path_length) + header_tail_size)
+  // Subtract rather than add so a huge path_length cannot wrap the sum.
+  if (cursor.remaining() < header_tail_size
+      || cursor.remaining() - header_tail_size < path_length)
     corruptError(filename, report);
   header.source_filename.assign(cursor.current(), path_length);
   cursor.setPtr(cursor.current() + path_length);
@@ -312,8 +314,10 @@ LibertyBinaryReader::readStringTable()
   for (std::uint32_t i = 0; i < size; i++) {
     require(4);
     std::uint32_t len = cursor_.readU32();
-    // len for the string bytes plus the 4-byte index that follows.
-    require(static_cast<size_t>(len) + 4);
+    // len for the string bytes plus the 4-byte index that follows, compared
+    // without adding so a huge len cannot wrap the sum.
+    if (cursor_.remaining() < 4 || cursor_.remaining() - 4 < len)
+      corruptError();
     const char *bytes = cursor_.current();
     cursor_.setPtr(bytes + len);
     // The writer stores each string's dense index; place the string there
@@ -362,8 +366,10 @@ LibertyBinaryReader::readValue()
     return parser_.makeAttrValueFloat(readFloatValue());
   else if (val_type == LibertyBinaryValueType::FLOAT_SEQ) {
     std::uint32_t count = readUInt32();
+    // Divide rather than multiply so a huge count cannot wrap the size.
+    if (count > cursor_.remaining() / sizeof(float))
+      corruptError();
     size_t bytes = static_cast<size_t>(count) * sizeof(float);
-    require(bytes);
     // The floats follow 1-byte tags, so they are neither aligned nor float
     // objects; copy the bytes out instead of reading through a float pointer.
     std::vector<float> seq(count);
